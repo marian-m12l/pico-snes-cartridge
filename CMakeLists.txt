@@ -10,7 +10,11 @@ project(pico-snes-cartridge C CXX ASM)
 pico_sdk_init()
 
 
-add_executable(pico-snes-cartridge main.c)
+add_executable(pico-snes-cartridge
+    main.c
+    #rom_helloworld.c
+    rom_color.c
+)
 
 pico_set_binary_type(pico-snes-cartridge copy_to_ram)
 
