@@ -45,11 +45,11 @@ uint32_t map_address_to_rom(uint32_t address) {
 }
 
 int main() {
-    stdio_init_all();
-
     // Overclock
-    //vreg_set_voltage(VREG_VOLTAGE_1_20);
-    //set_sys_clock_khz(284000, true);
+    vreg_set_voltage(VREG_VOLTAGE_1_20);
+    set_sys_clock_khz(284000, true);
+
+    stdio_init_all();
 
     // Configure GPIOs
     gpio_set_dir_masked64(SNES_ALL_PINS_MASK, 0x0000000000000000);
