@@ -16,13 +16,19 @@ add_executable(pico-snes-cartridge
     rom_color.c
 )
 
+target_compile_definitions(pico-snes-cartridge PRIVATE
+  PICO_DEFAULT_UART=0
+  PICO_DEFAULT_UART_TX_PIN=34
+  PICO_DEFAULT_UART_RX_PIN=35
+)
+
 pico_set_binary_type(pico-snes-cartridge copy_to_ram)
 
 pico_set_program_name(pico-snes-cartridge "pico-snes-cartridge")
 pico_set_program_version(pico-snes-cartridge "0.1")
 
-pico_enable_stdio_uart(pico-snes-cartridge 0)
-pico_enable_stdio_usb(pico-snes-cartridge 1)
+pico_enable_stdio_uart(pico-snes-cartridge 1)
+pico_enable_stdio_usb(pico-snes-cartridge 0)
 
 target_link_libraries(pico-snes-cartridge pico_stdlib)
 
