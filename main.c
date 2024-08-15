@@ -7,13 +7,14 @@
 #define DEBUG 1
 
 #ifdef DEBUG
-#define DEBUG_KEEPALIVE 1
+//#define DEBUG_KEEPALIVE 1
 #define COUNTER_THRESHOLD 40000
 #define BUFFER_SIZE 40000
 uint32_t counter = 0;
 uint32_t addresses[BUFFER_SIZE];
 uint8_t datas[BUFFER_SIZE];
 uint32_t datas_out[BUFFER_SIZE];
+uint16_t repetition[BUFFER_SIZE];
 #endif
 
 #define SNES_ADDR_PINS_MASK  0x0000000000ffffff
@@ -129,12 +130,15 @@ int main() {
         gpio_put_masked64(SNES_DATA_PINS_MASK, data_out);
 
 #ifdef DEBUG
-        /*if (address == 0x0080cf || address == 0x0090cf) {
+        if (counter > 1 && addresses[(counter-2)%BUFFER_SIZE] == address && datas[(counter-2)%BUFFER_SIZE] == data && datas_out[(counter-2)%BUFFER_SIZE] == data_out) {
+            // Count repetitions
             counter--;
-        }*/
-        addresses[(counter-1)%BUFFER_SIZE] = address ;//FIXME & 0x7fff;
-        datas[(counter-1)%BUFFER_SIZE] = data;
-        datas_out[(counter-1)%BUFFER_SIZE] = data_out;
+            repetition[(counter-1)%BUFFER_SIZE]++;
+        } else {
+            addresses[(counter-1)%BUFFER_SIZE] = address;
+            datas[(counter-1)%BUFFER_SIZE] = data;
+            datas_out[(counter-1)%BUFFER_SIZE] = data_out;
+        }
 #endif
 
         // Wait for /RD to go HIGH
@@ -151,7 +155,11 @@ int main() {
 
 #ifdef DEBUG
     for (int i=0; i<BUFFER_SIZE && i<COUNTER_THRESHOLD; i++) {
-        printf("#%02d: %06x -> rom[%06x] = %02x (%08x)\n", i, addresses[i], map_address_to_rom(addresses[i]), datas[i], datas_out[i]);
+        if (repetition[i] > 0) {
+            printf("#%05d: %06x -> rom[%06x] = %02x (%08x) [repeated %d times]\n", i, addresses[i], map_address_to_rom(addresses[i]), datas[i], datas_out[i], repetition[i]+1);
+        } else {
+            printf("#%05d: %06x -> rom[%06x] = %02x (%08x)\n", i, addresses[i], map_address_to_rom(addresses[i]), datas[i], datas_out[i]);
+        }
     }
 
     sleep_ms(5000);
