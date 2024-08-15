@@ -13,10 +13,11 @@ pico_sdk_init()
 add_executable(pico-snes-cartridge
     main.c
     #rom_helloworld.c
-    rom_color.c
+    #rom_color.c
     #rom_init32k.c
     #rom_bazz1_32k.c
     #rom_hello32k.c
+    rom_adventure04_32k.c
 )
 
 target_compile_definitions(pico-snes-cartridge PRIVATE
