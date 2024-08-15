@@ -7,8 +7,9 @@
 #define DEBUG 1
 
 #ifdef DEBUG
-#define COUNTER_THRESHOLD 10000000 // FIXME 140000
-#define BUFFER_SIZE 20000
+#define DEBUG_KEEPALIVE 1
+#define COUNTER_THRESHOLD 40000
+#define BUFFER_SIZE 40000
 uint32_t counter = 0;
 uint32_t addresses[BUFFER_SIZE];
 uint8_t datas[BUFFER_SIZE];
@@ -24,17 +25,19 @@ uint32_t datas_out[BUFFER_SIZE];
 
 #define SNES_ALL_PINS_MASK (SNES_ADDR_PINS_MASK | SNES_DATA_PINS_MASK | SNES_CTRL_PINS_MASK)
 
+uint8_t romtype;
+
 uint32_t map_address_to_rom(uint32_t address) {
-    // FIXME ADDRESS IS 24 BITS LONG --> HANDLE BANK ADDRESS CORRECTLY DEPENDING ON MEMORY MAPPER ??
     uint32_t bank = address >> 16;
-    // FIXME LoROM / HiROM / ExHiROM ??? --> Check rom type at 0x7fd5 ??
-    // TODO DON'T READ ROMTYPE EVERYTIME !!!
-    uint8_t romtype = rom[0x7fd5] & 0x0f;  // 0: LoROM, 1: HiROM, 5: ExHiROM
-    // FIXME (rom[0x7fd5] & 0x10) indicates SLOW or FAST ROM --> always patch to SLOW ??
     // FIXME address & 0x7fff or address & 0x6fff depending on (address & 0xf000) == 0xf000 ???
     if (romtype == 0) { // LoROM
         // LoROM: Up to 128 32KB-banks. Bank indexing starting from 0x80. Each bank starts at 0x8000
-        return (bank & 0x7f) * 32768 + (address & 0x7fff);
+        // FIXME return (bank & 0x7f) * 32768 + (address & 0x7fff);
+        if ((address & 0xf000) == 0x8000 || (address & 0xf000) == 0x9000) {
+            return (bank & 0x7f) * 32768 + (address & 0x6fff);
+        } else {
+            return (bank & 0x7f) * 32768 + (address & 0x7fff);
+        }
     } else if (romtype == 1) {  // HiROM
         // HiROM: Up to 64 64KB-banks. Bank indexing starting from 0xc0. Each bank starts at 0x0000
         return (bank & 0x3f) * 65536 + address;
@@ -47,7 +50,7 @@ uint32_t map_address_to_rom(uint32_t address) {
 int main() {
     // Overclock
     vreg_set_voltage(VREG_VOLTAGE_1_20);
-    set_sys_clock_khz(284000, true);
+    set_sys_clock_khz(300000, true);
 
     stdio_init_all();
 
@@ -76,6 +79,14 @@ int main() {
     gpio_set_drive_strength(SNES_DATA_PINS_SHIFT+6, GPIO_DRIVE_STRENGTH_8MA);
     gpio_set_drive_strength(SNES_DATA_PINS_SHIFT+7, GPIO_DRIVE_STRENGTH_8MA);
 
+    romtype = rom[0x7fd5] & 0x0f;  // 0: LoROM, 1: HiROM, 5: ExHiROM
+    if (romtype == 0) { // LoROM
+        printf("ROM type: LoROM\n");
+    } else if (romtype == 1) {  // HiROM
+        printf("ROM type: HiROM\n");
+    } else {
+        printf("ROM type: ExHiROM\n");
+    }
 
     printf("Waiting for SNES to boot...\n");
     while((gpio_get_all64() & SNES_CTRL_PINS_MASK) == 0) {
@@ -84,7 +95,11 @@ int main() {
 
 #ifdef DEBUG
     //while (counter++ < BUFFER_SIZE) {
-    while (counter++ < COUNTER_THRESHOLD) {
+    #ifdef DEBUG_KEEPALIVE
+        while (true) {
+    #else
+        while (counter++ < COUNTER_THRESHOLD) {
+    #endif
     //while (true) {
 #else
     while (true) {
@@ -114,6 +129,9 @@ int main() {
         gpio_put_masked64(SNES_DATA_PINS_MASK, data_out);
 
 #ifdef DEBUG
+        /*if (address == 0x0080cf || address == 0x0090cf) {
+            counter--;
+        }*/
         addresses[(counter-1)%BUFFER_SIZE] = address ;//FIXME & 0x7fff;
         datas[(counter-1)%BUFFER_SIZE] = data;
         datas_out[(counter-1)%BUFFER_SIZE] = data_out;
@@ -132,7 +150,7 @@ int main() {
     }
 
 #ifdef DEBUG
-    for (int i=0; i<BUFFER_SIZE; i++) {
+    for (int i=0; i<BUFFER_SIZE && i<COUNTER_THRESHOLD; i++) {
         printf("#%02d: %06x -> rom[%06x] = %02x (%08x)\n", i, addresses[i], map_address_to_rom(addresses[i]), datas[i], datas_out[i]);
     }
 
