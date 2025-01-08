@@ -23,8 +23,8 @@ add_executable(pico-snes-cartridge
 
 target_compile_definitions(pico-snes-cartridge PRIVATE
   PICO_DEFAULT_UART=0
-  PICO_DEFAULT_UART_TX_PIN=34
-  PICO_DEFAULT_UART_RX_PIN=35
+  PICO_DEFAULT_UART_TX_PIN=44
+  PICO_DEFAULT_UART_RX_PIN=45
 )
 
 pico_set_binary_type(pico-snes-cartridge copy_to_ram)

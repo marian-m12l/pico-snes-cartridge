@@ -8,10 +8,10 @@ On rp2350 board (e.g. PGA2350):
 
 - Address bus `A0`-`A23`: GPIO 0 (`A0`) to 23 (`A23`)
 - Data bus `D0`-`D7`: GPIO 24 (`D0`) to 31 (`D7`)
-- Read pin `/RD`: GPIO 32
-- Cart pin `/CART`: GPIO 33
+- Read pin `/CART`: GPIO 32
+- Cart pin `/RD`: GPIO 33
 
-- UART pins `TX` and `RX`: GPIO 34 and 35
+- UART pins `TX` and `RX`: GPIO 44 and 45
 
 ## Build instructions
 
