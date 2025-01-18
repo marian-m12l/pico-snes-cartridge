@@ -1,0 +1,5 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "snes_cart_pcb_20240730-rescue")(type "KiCad")(uri "${KIPRJMOD}/snes_cart_pcb_20240730-rescue.kicad_sym")(options "")(descr ""))
+  (lib (name "PGA2350")(type "Legacy")(uri "${KIPRJMOD}/PGA2350.lib")(options "")(descr ""))
+)

@@ -1,15 +1,17 @@
-# Pico-based SNES cartridge
+# RP2350-based SNES cartridge
 
 TODO
 
 ## Pins
 
-On pico board:
+On rp2350 board (e.g. PGA2350):
 
-- Address bus `A0`-`A15`: GPIO 0 (`A0`) to 15 (`A15`)
-- Data bus `D0`-`D7`: GPIO 16 (`D0`) to 22 (`D6`) + GPIO 26 (`D7`)
-- Read pin `/RD`: GPIO 27
-- Cart pin `/CART`: GPIO 28
+- Address bus `A0`-`A23`: GPIO 0 (`A0`) to 23 (`A23`)
+- Data bus `D0`-`D7`: GPIO 24 (`D0`) to 31 (`D7`)
+- Read pin `/CART`: GPIO 32
+- Cart pin `/RD`: GPIO 33
+
+- UART pins `TX` and `RX`: GPIO 44 and 45
 
 ## Build instructions
 

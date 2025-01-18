@@ -1,0 +1,5 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "SNES-FeRAM-Cart-master")(type "KiCad")(uri "${KIPRJMOD}/SNES-FeRAM-Cart-master.pretty")(options "")(descr ""))
+  (lib (name "PGA2350")(type "KiCad")(uri "${KIPRJMOD}/PGA2350.pretty/")(options "")(descr ""))
+)

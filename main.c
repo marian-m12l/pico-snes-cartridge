@@ -4,7 +4,7 @@
 #include "hardware/vreg.h"
 #include "rom.h"
 
-#define DEBUG 1
+//#define DEBUG 1
 
 #ifdef DEBUG
 //#define DEBUG_KEEPALIVE 1
@@ -20,8 +20,8 @@ uint16_t repetition[BUFFER_SIZE];
 #define SNES_ADDR_PINS_MASK  0x0000000000ffffff
 #define SNES_DATA_PINS_MASK  0x00000000ff000000
 #define SNES_DATA_PINS_SHIFT 24
-#define SNES_RD_PIN_MASK     0x0000000100000000
-#define SNES_CART_PIN_MASK   0x0000000200000000
+#define SNES_RD_PIN_MASK     0x0000000200000000
+#define SNES_CART_PIN_MASK   0x0000000100000000
 #define SNES_CTRL_PINS_MASK  (SNES_RD_PIN_MASK | SNES_CART_PIN_MASK)
 
 #define SNES_ALL_PINS_MASK (SNES_ADDR_PINS_MASK | SNES_DATA_PINS_MASK | SNES_CTRL_PINS_MASK)
@@ -33,12 +33,12 @@ uint32_t map_address_to_rom(uint32_t address) {
     // FIXME address & 0x7fff or address & 0x6fff depending on (address & 0xf000) == 0xf000 ???
     if (romtype == 0) { // LoROM
         // LoROM: Up to 128 32KB-banks. Bank indexing starting from 0x80. Each bank starts at 0x8000
-        // FIXME return (bank & 0x7f) * 32768 + (address & 0x7fff);
-        if ((address & 0xf000) == 0x8000 || (address & 0xf000) == 0x9000) {
+        return (bank & 0x7f) * 32768 + (address & 0x7fff);
+        /*if ((address & 0xf000) == 0x8000 || (address & 0xf000) == 0x9000) {
             return (bank & 0x7f) * 32768 + (address & 0x6fff);
         } else {
             return (bank & 0x7f) * 32768 + (address & 0x7fff);
-        }
+        }*/
     } else if (romtype == 1) {  // HiROM
         // HiROM: Up to 64 64KB-banks. Bank indexing starting from 0xc0. Each bank starts at 0x0000
         return (bank & 0x3f) * 65536 + address;
@@ -48,10 +48,27 @@ uint32_t map_address_to_rom(uint32_t address) {
     }
 }
 
+inline void gpio_set_ie(bool enabled) {
+    // FIXME which pins need IE disabled ??
+    gpio_set_input_enabled(12, enabled);
+    //gpio_set_input_enabled(16, enabled);
+    //gpio_set_input_enabled(18, enabled);
+    //gpio_set_input_enabled(20, enabled);
+    //gpio_set_input_enabled(22, enabled);
+}
+
+inline void gpio_disable_ie() {
+    gpio_set_ie(false);
+}
+
+inline void gpio_enable_ie() {
+    gpio_set_ie(true);
+}
+
 int main() {
     // Overclock
     vreg_set_voltage(VREG_VOLTAGE_1_20);
-    set_sys_clock_khz(300000, true);
+    set_sys_clock_khz(330000, true);
 
     stdio_init_all();
 
@@ -80,6 +97,12 @@ int main() {
     gpio_set_drive_strength(SNES_DATA_PINS_SHIFT+6, GPIO_DRIVE_STRENGTH_8MA);
     gpio_set_drive_strength(SNES_DATA_PINS_SHIFT+7, GPIO_DRIVE_STRENGTH_8MA);
 
+    // Erratum E9: disable IE
+    /*for (int pin = 0; pin < 34; pin++) {
+        gpio_set_input_enabled(pin, false);
+    }*/
+//    gpio_disable_ie();
+
     romtype = rom[0x7fd5] & 0x0f;  // 0: LoROM, 1: HiROM, 5: ExHiROM
     if (romtype == 0) { // LoROM
         printf("ROM type: LoROM\n");
@@ -90,9 +113,22 @@ int main() {
     }
 
     printf("Waiting for SNES to boot...\n");
+
+    // Erratum E9: enable IE just before reading, disable right after reading
+    /*
+    uint64_t input = 0;
+    do {
+        gpio_set_input_enabled(32, true);
+        gpio_set_input_enabled(33, true);
+        input = gpio_get_all64();
+        gpio_set_input_enabled(32, false);
+        gpio_set_input_enabled(33, false);
+    } while ((input & SNES_CTRL_PINS_MASK) == 0);
+    */
     while((gpio_get_all64() & SNES_CTRL_PINS_MASK) == 0) {
         tight_loop_contents();
     }
+
 
 #ifdef DEBUG
     //while (counter++ < BUFFER_SIZE) {
@@ -114,20 +150,64 @@ int main() {
         // TODO output data
 
         //printf("Waiting for data query from SNES...\n");
+
+        // Erratum E9: enable IE just before reading, disable right after reading
+        /*input = 0;
+        do {
+            gpio_set_input_enabled(32, true);
+            gpio_set_input_enabled(33, true);
+            input = gpio_get_all64();
+            gpio_set_input_enabled(32, false);
+            gpio_set_input_enabled(33, false);
+        } while ((input & SNES_CTRL_PINS_MASK) != 0);
+        */
+        
         while((gpio_get_all64() & SNES_CTRL_PINS_MASK) != 0) {
              tight_loop_contents();
         }
+        
+        
+        // Erratum E9: enable IE just before reading, disable right after reading        
+        /*input = 0;
+        for (int pin = 0; pin < 24; pin++) {
+            gpio_set_input_enabled(pin, true);
+        }*/
+        //gpio_set_input_enabled(12, true);
+//        gpio_enable_ie();
         uint32_t address = (gpio_get_all64() & SNES_ADDR_PINS_MASK);
+        /*for (int pin = 0; pin < 24; pin++) {
+            gpio_set_input_enabled(pin, false);
+        }*/
+        //gpio_set_input_enabled(23, false);
         //printf("Data requested. Address=%06x\n", address);
 
         uint32_t data_location_in_rom = map_address_to_rom(address);
-        uint8_t data = rom[data_location_in_rom]; //(address & 0xf000) == 0xf000 ? rom[address & 0x7fff] : rom[address & 0x6fff];    // FIXME
+        uint8_t data = 0xff;
+        if (data_location_in_rom > rom_size) {
+            // TODO out of bounds!!!
+            printf("Out of bound! Address=%06x LocationInRom=%04x\n", address, data_location_in_rom);
+
+    #ifdef DEBUG
+            addresses[(counter-1)%BUFFER_SIZE] = address;
+            datas[(counter-1)%BUFFER_SIZE] = data;
+            datas_out[(counter-1)%BUFFER_SIZE] = data << SNES_DATA_PINS_SHIFT;
+    #endif
+
+            break;
+        } else {
+            data = rom[data_location_in_rom];
+        }
+        //uint8_t data = rom[data_location_in_rom]; //(address & 0xf000) == 0xf000 ? rom[address & 0x7fff] : rom[address & 0x6fff];    // FIXME
         //printf("Data=%02x\n", data);
 
         uint64_t data_out = data << SNES_DATA_PINS_SHIFT;
 
         gpio_set_dir_out_masked64(SNES_DATA_PINS_MASK);
         gpio_put_masked64(SNES_DATA_PINS_MASK, data_out);
+
+
+        //gpio_set_input_enabled(12, false);
+//        gpio_disable_ie();
 
 #ifdef DEBUG
         if (counter > 1 && addresses[(counter-2)%BUFFER_SIZE] == address && datas[(counter-2)%BUFFER_SIZE] == data && datas_out[(counter-2)%BUFFER_SIZE] == data_out) {
@@ -142,9 +222,20 @@ int main() {
 #endif
 
         // Wait for /RD to go HIGH
+        // Erratum E9: enable IE just before reading, disable right after reading
+        /*input = 0;
+        do {
+            gpio_set_input_enabled(32, true);
+            gpio_set_input_enabled(33, true);
+            input = gpio_get_all64();
+            gpio_set_input_enabled(32, false);
+            gpio_set_input_enabled(33, false);
+        } while ((input & SNES_RD_PIN_MASK) == 0);
+        */
         while((gpio_get_all64() & SNES_RD_PIN_MASK) == 0) {
             tight_loop_contents();
         }
+        
 
         // FIXME when to clear data bus ??
 
@@ -154,7 +245,7 @@ int main() {
     }
 
 #ifdef DEBUG
-    for (int i=0; i<BUFFER_SIZE && i<COUNTER_THRESHOLD; i++) {
+    for (int i=0; i<BUFFER_SIZE && i<COUNTER_THRESHOLD && i<counter; i++) {
         if (repetition[i] > 0) {
             printf("#%05d: %06x -> rom[%06x] = %02x (%08x) [repeated %d times]\n", i, addresses[i], map_address_to_rom(addresses[i]), datas[i], datas_out[i], repetition[i]+1);
         } else {
