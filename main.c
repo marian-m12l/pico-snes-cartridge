@@ -101,7 +101,7 @@ int main() {
     /*for (int pin = 0; pin < 34; pin++) {
         gpio_set_input_enabled(pin, false);
     }*/
-    gpio_disable_ie();
+//    gpio_disable_ie();
 
     romtype = rom[0x7fd5] & 0x0f;  // 0: LoROM, 1: HiROM, 5: ExHiROM
     if (romtype == 0) { // LoROM
@@ -173,7 +173,7 @@ int main() {
             gpio_set_input_enabled(pin, true);
         }*/
         //gpio_set_input_enabled(12, true);
-        gpio_enable_ie();
+//        gpio_enable_ie();
         uint32_t address = (gpio_get_all64() & SNES_ADDR_PINS_MASK);
         /*for (int pin = 0; pin < 24; pin++) {
             gpio_set_input_enabled(pin, false);
@@ -207,7 +207,7 @@ int main() {
 
 
         //gpio_set_input_enabled(12, false);
-        gpio_disable_ie();
+//        gpio_disable_ie();
 
 #ifdef DEBUG
         if (counter > 1 && addresses[(counter-2)%BUFFER_SIZE] == address && datas[(counter-2)%BUFFER_SIZE] == data && datas_out[(counter-2)%BUFFER_SIZE] == data_out) {
