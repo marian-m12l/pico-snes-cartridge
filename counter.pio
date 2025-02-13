@@ -1,0 +1,23 @@
+.program counter
+    mov x !null         ; setup initial value
+.wrap_target
+    wait 0 pin 0        ; wait for low if high
+    wait 1 pin 0        ; wait for high
+    jmp x-- always      ; decrement counter; always jump to next instruction
+always:
+    mov isr x           ; copy current value to isr
+    push noblock        ; push to CPU
+.wrap
+
+
+
+% c-sdk {
+static inline void counter_program_init(PIO pio, uint sm, uint offset, uint pin) {
+    pio_sm_config c = counter_program_get_default_config(offset);
+    sm_config_set_in_pins(&c, pin);
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, false);
+    pio_gpio_init(pio, pin);
+    pio_sm_init(pio, sm, offset, &c);
+    //pio_sm_set_enabled(pio, sm, true);
+}
+%}

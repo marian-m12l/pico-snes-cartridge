@@ -12,14 +12,17 @@ pico_sdk_init()
 
 add_executable(pico-snes-cartridge
     main.c
-    rom_helloworld.c
+    #rom_helloworld.c
     #rom_color.c
     #rom_init32k.c
     #rom_bazz1_32k.c
     #rom_hello32k.c
     #rom_adventure04_32k.c
     #rom_mrdo.c
+    rom_snes3d_demo.c
 )
+
+pico_generate_pio_header(pico-snes-cartridge ${CMAKE_CURRENT_LIST_DIR}/counter.pio)
 
 target_compile_definitions(pico-snes-cartridge PRIVATE
   PICO_DEFAULT_UART=0
@@ -35,6 +38,6 @@ pico_set_program_version(pico-snes-cartridge "0.1")
 pico_enable_stdio_uart(pico-snes-cartridge 1)
 pico_enable_stdio_usb(pico-snes-cartridge 0)
 
-target_link_libraries(pico-snes-cartridge pico_stdlib)
+target_link_libraries(pico-snes-cartridge pico_stdlib pico_multicore hardware_pio hardware_dma)
 
 pico_add_extra_outputs(pico-snes-cartridge)
