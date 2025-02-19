@@ -57,9 +57,9 @@ uint16_t repetition[BUFFER_SIZE];
 
 
 //#define NO_LOAD 1
-#define LOAD_NO_BANKS 1
+//#define LOAD_NO_BANKS 1
 //#define LOAD_BANKS_16K 1
-//#define LOAD_BANKS_4K 1
+#define LOAD_BANKS_4K 1
 
 #ifdef LOAD_NO_BANKS
 #define ROM_MAX_LENGTH (256*1024)

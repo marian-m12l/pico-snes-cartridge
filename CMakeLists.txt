@@ -19,7 +19,12 @@ add_executable(pico-snes-cartridge
     #rom_hello32k.c
     #rom_adventure04_32k.c
     #rom_mrdo.c
-    rom_snes3d_demo.c
+    #rom_snes3d_demo.c
+    #rom_smw.c
+    #rom_fzero.c
+    #rom_mspacman.c
+    #rom_hilda.c
+    rom_christmas_craze.c
 )
 
 pico_generate_pio_header(pico-snes-cartridge ${CMAKE_CURRENT_LIST_DIR}/counter.pio)
