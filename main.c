@@ -1,14 +1,20 @@
 #include <stdio.h>
+#include <string.h>
 #include "pico/stdlib.h"
 #include "pico/multicore.h"
 #include "hardware/clocks.h"
 #include "hardware/vreg.h"
 #include "hardware/dma.h"
 #include "hardware/pio.h"
+#include "hardware/xip_cache.h"
 #include "rom.h"
 #include "counter.pio.h"
 
 //#define DEBUG 1
+//#define CIC_DEBUG 1
+#define ENABLE_UART 1
+//#define ENABLE_CIC 1
+#define ENABLE_BUS 1
 
 #ifdef DEBUG
 //#define DEBUG_KEEPALIVE 1
@@ -44,14 +50,46 @@ uint16_t repetition[BUFFER_SIZE];
 
 #define SNES_ALL_PINS_MASK (SNES_ADDR_PINS_MASK | SNES_DATA_PINS_MASK | SNES_CTRL_PINS_MASK | SNES_CIC_PINS_MASK | DEBUG_PINS_MASK)
 
-uint8_t romtype;
-volatile uint32_t cic_clock_count = 0xffffffff;
 
+#define CACHE_AS_SRAM_OFFSET 0x02000000
+
+
+//#define BANKS_16K 1
+#define BANKS_4K 1
+
+#ifdef BANKS_16K
+#define BANK_LENGTH (16*1024)
+uint8_t* xip_bank31 = (uint8_t*) (XIP_BASE+CACHE_AS_SRAM_OFFSET);
+uint8_t sram_banks[31][BANK_LENGTH];
+uint8_t* banks[32]; // 524288 bytes of rom data across 32 banks
+#endif
+
+#ifdef BANKS_4K
+// TODO 128 banks of 4 KiB to add USB RAM ??? 1 bank (4KiB) in USB RAM + 4 banks (16KiB) in pinned cache + 123 banks (492KiB) in main RAM
+#define BANK_LENGTH (4*1024)
+uint8_t* xip_banks = (uint8_t*) (XIP_BASE+CACHE_AS_SRAM_OFFSET);
+uint8_t* usb_bank = (uint8_t*) (USBCTRL_DPRAM_BASE);
+uint8_t sram_banks[123][BANK_LENGTH];
+uint8_t* banks[128]; // 524288 bytes of rom data across 128 banks
+#endif
+
+
+uint8_t romtype;
+
+#ifdef ENABLE_CIC
+volatile uint32_t cic_clock_count = 0xffffffff;
+#endif
+
+#ifdef ENABLE_BUS
 uint32_t map_address_to_rom(uint32_t address) {
     uint32_t bank = address >> 16;
     // FIXME address & 0x7fff or address & 0x6fff depending on (address & 0xf000) == 0xf000 ???
     if (romtype == 0) { // LoROM
         // LoROM: Up to 128 32KB-banks. Bank indexing starting from 0x80. Each bank starts at 0x8000
+        // TODO Banks 70-7d --> SRAM
+        if (bank >= 0x70 && bank < 0x7e) {
+            return 0;
+        }
         return (bank & 0x7f) * 32768 + (address & 0x7fff);
         /*if ((address & 0xf000) == 0x8000 || (address & 0xf000) == 0x9000) {
             return (bank & 0x7f) * 32768 + (address & 0x6fff);
@@ -66,6 +104,7 @@ uint32_t map_address_to_rom(uint32_t address) {
         return (bank & 0x3f) * 65536 + address;
     }
 }
+#endif
 
 /*
 inline void gpio_set_ie(bool enabled) {
@@ -86,6 +125,9 @@ inline void gpio_enable_ie() {
 }
 */
 
+
+
+#ifdef ENABLE_CIC
 
 // TODO From https://github.com/mrehkopf/sd2snes/blob/develop/cic/mangle.c
 
@@ -149,10 +191,14 @@ uint mangle(unsigned char* data) {
 }
 
 
-uint32_t mangles[1024];
-uint32_t delays[1024];
-uint32_t timings[1024];
-uint32_t timings_end[1024];
+#ifdef CIC_DEBUG
+#define BUFSIZE 1024
+
+uint32_t mangles[BUFSIZE];
+uint32_t delays[BUFSIZE];
+uint32_t timings[BUFSIZE];
+uint32_t timings_end[BUFSIZE];
+#endif
 
 
 static inline void wait_until_clock_pulses(uint32_t until) {
@@ -176,15 +222,20 @@ void core1_entry() {
     
     while (true) {
         // CIC Emulation
+#ifdef ENABLE_UART
         printf("Starting CIC emulation...\n");
+#endif
 
+#ifdef CIC_DEBUG
         gpio_put(DEBUG_PIN, 1);
+#endif
 
         // TODO Use IRQ to reset CIC when RST goes up? (e.g. when resetting the console manually?)
 
         // Setup clock pulses counter (CIC clock may be 4MHz, 3.58MHz, 3.54MHz, or 3.072MHz)
         cic_clock_count = 0xffffffff;
         uint32_t wait_next;
+        uint8_t seed = 0;
 
         // Setup PIO counter
         PIO pio;
@@ -192,7 +243,9 @@ void core1_entry() {
         uint sm;
         bool success = pio_claim_free_sm_and_add_program_for_gpio_range(&counter_program, &pio, &sm, &offset, SNES_CIC_CLK_PIN, 1, true);
         if (!success) {
+#ifdef ENABLE_UART
             printf("Failed to initialize PIO\n");
+#endif
             goto cic_die;
         }
         counter_program_init(pio, sm, offset, SNES_CIC_CLK_PIN);
@@ -250,7 +303,9 @@ void core1_entry() {
         gpio_put_masked64(SNES_CIC_IO_PINS_MASK, 0x0000000000000000);
         
         // Wait for CIC RST to raise
+#ifdef ENABLE_UART
         printf("Waiting for CIC reset...\n");
+#endif
         while((gpio_get_all64() & SNES_CIC_RST_PIN_MASK) == 0) {
             tight_loop_contents();
         }
@@ -260,13 +315,27 @@ void core1_entry() {
         }
         pio_sm_set_enabled(pio, sm, true);
 
+#ifdef CIC_DEBUG
         //printf("CIC start\n");
         gpio_put(DEBUG_PIN, 0);
+#endif
+
+        /*uint32_t wait = 1000;
+        int dbg = 1;
+        while (true) {
+            // TODO switch debug pin every 1000 cic pulses
+            wait_until_clock_pulses(wait);
+            gpio_put(DEBUG_PIN, dbg);
+            dbg = !dbg;
+            wait += 1000;
+        }*/
 
         // Read seed nibble a.k.a. stream id (transmission bit order is 3-0-1-2. e.g. '1-0-1-1' => 0xe)
         wait_next = 632 * 4;    // FIXME 635 * 4;
         wait_until_clock_pulses(wait_next);
+#ifdef CIC_DEBUG
         gpio_put(DEBUG_PIN, 1);
+#endif
         keyseed[1] |= gpio_get(SNES_CIC_P2_PIN) << 3;
         wait_next += 15 * 4;
         wait_until_clock_pulses(wait_next);
@@ -277,9 +346,13 @@ void core1_entry() {
         wait_next += 15 * 4;
         wait_until_clock_pulses(wait_next);
         keyseed[1] |= gpio_get(SNES_CIC_P2_PIN) << 2;
+#ifdef CIC_DEBUG
         gpio_put(DEBUG_PIN, 0);
+#endif
 
         //printf("CIC seed=0x%01x\n", keyseed[1]);
+
+        seed = keyseed[1];
 
         // wait (instruction) cycles until main loop: 133
 
@@ -323,12 +396,14 @@ void core1_entry() {
                 wait_until_clock_pulses(wait_next);
                 wait_next += 8 * 4; // FIXME
                 // Output keyseed bit to P2 or P1
+#ifdef CIC_DEBUG
                 if (first) {
-                    delays[idx] = wait_next;
-                    timings[idx] = ~cic_clock_count + 8*4;
+                    delays[idx%BUFSIZE] = wait_next;
+                    timings[idx%BUFSIZE] = ~cic_clock_count + 8*4;
                     first = false;
                 }
                 gpio_put(DEBUG_PIN, 1);
+#endif
                 gpio_put(swap ? SNES_CIC_P1_PIN : SNES_CIC_P2_PIN, output);
                 restart++;
 
@@ -344,7 +419,9 @@ void core1_entry() {
                         // Didn't read the expected '1'
                         // Die ? Or should we go on ?
                         //goto cic_die;
-                        printf("CIC dying because we did not receives the expected high pulse from lock\n");
+#ifdef ENABLE_UART
+                        printf("CIC dying because we did not receive the expected high pulse from lock\n");
+#endif
                         die = true;
                         break;
                     }
@@ -362,6 +439,25 @@ void core1_entry() {
                     // ==> expected input '1', start first output and wait for rising egde on input --> never happens, infinite loop...
                     // ==> bad cic calculation ?? e.g. 1.txt line 394
                     // FIXME Wrong mangling cycles ? cycles.c gives 18500 cic pulses, actual wait is 17500 cic pulses ?!
+
+
+                    // Fails after <n> exchanges:
+                    // Seed 0: 125
+                    // Seed 1: 107
+                    // Seed 2: 128
+                    // Seed 3: 131
+                    // Seed 4: 127
+                    // Seed 5: 129
+                    // Seed 6: 
+                    // Seed 7: 99   (539ms)
+                    // Seed 8: 127
+                    // Seed 9: 126
+                    // Seed a: 133
+                    // Seed b: 128
+                    // Seed c: 
+                    // Seed d: 129
+                    // Seed e: 126
+                    // Seed f: 124
                 }
 
                 // TODO Just time the GPIO output with cpu instructions as it may be too short to actually count cic cycles here ?
@@ -370,10 +466,13 @@ void core1_entry() {
                 wait_until_clock_pulses(wait_next);
                 // Clear output
                 gpio_put(swap ? SNES_CIC_P1_PIN : SNES_CIC_P2_PIN, 0);
+#ifdef CIC_DEBUG
                 gpio_put(DEBUG_PIN, 0);
                 if (restart == 16) {
-                    timings_end[idx++] = ~cic_clock_count - 8*4;
+                    timings_end[idx%BUFSIZE] = ~cic_clock_count - 8*4;
+                    idx++;
                 }
+#endif
 
                 wait_clock_pulses(72-8/*FIXME*/);  // TODO how long to wait before checking ??
                 // TODO Both pins must be low when no bit transfer takes place
@@ -381,7 +480,9 @@ void core1_entry() {
                 if ((gpio_get_all64() & SNES_CIC_IO_PINS_MASK) != 0) {
                     // TODO Replace goto with break and a flag ??
                     //goto cic_die;
+#ifdef ENABLE_UART
                     printf("CIC dying because data lines are not low between pulses\n");
+#endif
                     die = true;
                     break;
                 }
@@ -403,9 +504,11 @@ void core1_entry() {
             mangle_cycles += mangle(lockseed);
             mangle_cycles += mangle(keyseed);
             wait_next += mangle_cycles * 4;
-            printf("mangle cycles = %d\n", mangle_cycles);
-            mangles[idx] = mangle_cycles;
+#ifdef CIC_DEBUG
+//            printf("mangle cycles = %d\n", mangle_cycles);
+            mangles[idx%BUFSIZE] = mangle_cycles;
             //printf("mangle cycles = %d --> %d vs %d / 0x%08x\n", mangle_cycles, wait_next, ~cic_clock_count, cic_clock_count);
+#endif
 
             // FIXME With seed 0xc --> 55 * 4 cycles too fast between first and second iteration (61.625 us)
             //wait_next += 55 * 4;    // FIXME
@@ -433,22 +536,35 @@ void core1_entry() {
         }
 
     cic_die:
+#ifdef ENABLE_UART
         printf("CIC died...\n");
+        printf("seed=0x%01x\n", seed);
+#endif
 
 
-        for (uint16_t i=0; i<=idx; i++) {
-            uint32_t diff = timings[i];
-            if (i > 0) {
-                diff -= timings_end[i-1];
+#ifdef CIC_DEBUG
+        // TODO Circular buffer
+        uint16_t pos = idx % BUFSIZE;
+        uint16_t start = idx - pos;
+        for (uint16_t i=start; i<=idx; i++) {
+            uint16_t ii = i % BUFSIZE;
+            uint32_t diff = timings[ii];
+            if (ii > 0) {
+                diff -= timings_end[(i-1)%BUFSIZE];
+            } else {
+                diff -= timings_end[BUFSIZE-1];
             }
-            printf("#%d -> %d %d / %d / %d %d %d\n", i, mangles[i], mangles[i]*4, delays[i], timings[i], timings_end[i], diff);
+            printf("#%d -> %d %d / %d / %d %d %d\n", i, mangles[ii], mangles[ii]*4, delays[ii], timings[ii], timings_end[ii], diff);
         }
+#endif
 
         // TODO Switch region PAL/NTSC ??
 
         gpio_set_dir_masked64(SNES_CIC_IO_PINS_MASK, 0x0000000000000000);
         gpio_put_masked64(SNES_CIC_IO_PINS_MASK, 0x0000000000000000);
+#ifdef CIC_DEBUG
         gpio_put(DEBUG_PIN, 1);
+#endif
 
         // TODO Uninit DMA and PIO + Loop back to CIC init
 
@@ -468,26 +584,186 @@ void core1_entry() {
         // unclaim/free pio
         pio_remove_program_and_unclaim_sm(&counter_program, pio, sm, offset);
 
+#ifdef CIC_DEBUG
         gpio_put(DEBUG_PIN, 0);
+#endif
     }
 }
 
+#endif
+
 
 int main() {
+
+#ifdef ENABLE_BUS
     // Overclock
     vreg_set_voltage(VREG_VOLTAGE_1_20);
     set_sys_clock_khz(330000, true);
+#endif
 
+#ifdef ENABLE_UART
     stdio_init_all();
+#endif
 
+    //sleep_ms(5000);
+
+#ifdef ENABLE_UART
+    printf("TEST TEST TEST\n");
+#endif
+
+    //sleep_ms(1000);
+
+
+#ifdef ENABLE_UART
+    printf("Pinning 16K of cache lines\n");
+    //sleep_ms(1000);
+#endif
+    // TODO Pin XIP cache lines to use another 16KB of SRAM
+    // TODO Use USB SRAM (4KB) since we're not using USB anyway
+    // TODO Total amount of usable RAM: 520 + 16 + 4 = 540 KB (+1 KB of Boot RAM if we _really_ need it...
+    // TODO Make the code fit in 28 KB ?? --> remove debug buffers ? 16 KB)
+    // TODO Need to load ROM data from flash into pinned cache lines and USB RAM ?? --> mark rom data as flash only + handle the whole copying manually at boot time
+    // TODO Use __in_flash() attribute
+    // TODO Should be able to fit 512 KB ROMs with no additional chip and Slow ROM --> F-Zero, Final Fantasy: Mystic Quest, SMW, ...
+    // TODO Leave 8 KB of RAM for SRAM saves ?? up to 32 KB ??? --> of use PSRAM maybe ?? timing constraints on SRAM reads ??? same as ROM ??
+    // FIXME Need custom ld script to use the scratch sram banks (2 * 4KiB) ???
+
+    // Pin cache lines for an additional 16 KiB of RAM
+    //printf("Pinning 16KB of XIP cache at address 0x%08x\n", xip_bank31);
+    //xip_cache_maintenance(CACHE_AS_SRAM_OFFSET, 16*1024, XIP_CACHE_PIN_AT_ADDRESS);
+    xip_cache_pin_range(CACHE_AS_SRAM_OFFSET, 16*1024);
+    /*for (int line=0; line<2048; line++) {
+        char* maintenance_addr = (char*) (XIP_MAINTENANCE_BASE + CACHE_AS_SRAM_OFFSET + line*8 + 7);
+        *maintenance_addr = 1;
+    }*/
+#ifdef ENABLE_UART
+    printf("Pinned\n");
+    //sleep_ms(1000);
+#endif
+
+
+#ifdef BANKS_16K
+    for (int i=0; i<31; i++) {
+        banks[i] = sram_banks[i];
+    }
+    banks[31] = xip_bank31;
+    // TODO Bank 31 will NOT be zero-initialized by the BSS routine
+    memset(xip_bank31, 0, BANK_LENGTH);
+    // Load ROM into RAM
+    int banks_count = rom_size / BANK_LENGTH;
+    if (banks_count > 32) {
+#ifdef ENABLE_UART
+        printf("Unsupported ROM size: %d banks > %d\n", banks_count, 32);
+    //sleep_ms(1000);
+#endif
+        banks_count = 32;
+    }
+#ifdef ENABLE_UART
+    printf("Loading %d ROM banks\n", banks_count);
+    //sleep_ms(1000);
+#endif
+    for (int i=0; i<banks_count; i++) {
+        memcpy(banks[i], rom + i*BANK_LENGTH, BANK_LENGTH);
+    }
+#ifdef ENABLE_UART
+    printf("Loaded\n");
+    //sleep_ms(1000);
+#endif
+#endif
+
+#ifdef BANKS_4K
+    // FIXME Should reset USB controller before accessing USB DPRAM @ 0x50100000 ??
+    // TODO bit 28 of RESETS ??
+    /*
+    You can store general user data in USB DPRAM space not required for USB controller operation. When the controller is
+    disabled, all 4 kB of DPRAM is available. Before accessing the DPRAM, you must take the USB controller out of reset.
+    */
+
+#ifdef ENABLE_UART
+    printf("Loading ROM into 4K banks\n");
+    //sleep_ms(1000);
+#endif
+
+    for (int i=0; i<123; i++) {
+        banks[i] = sram_banks[i];
+    }
+    banks[123] = xip_banks;
+    banks[124] = xip_banks + BANK_LENGTH;
+    banks[125] = xip_banks + 2*BANK_LENGTH;
+    banks[126] = xip_banks + 3*BANK_LENGTH;
+    banks[127] = usb_bank;
+#ifdef ENABLE_UART
+    printf("Zeroing cache RAM\n");
+    //sleep_ms(1000);
+#endif
+    // TODO Banks 123+ will NOT be zero-initialized by the BSS routine
+    memset(xip_banks, 0, 4*BANK_LENGTH);
+#ifdef ENABLE_UART
+    printf("Zeroing USB RAM\n");
+    //sleep_ms(1000);
+#endif
+    memset(usb_bank, 0, BANK_LENGTH);
+#ifdef ENABLE_UART
+    printf("Calculating banks count\n");
+    //sleep_ms(1000);
+#endif
+    // Load ROM into RAM
+    int banks_count = rom_size / BANK_LENGTH;
+#ifdef ENABLE_UART
+    printf("ROM size: %d Banks count: %d\n", rom_size, banks_count);
+    //sleep_ms(1000);
+#endif
+    if (banks_count > 128) {
+#ifdef ENABLE_UART
+        printf("Unsupported ROM size: %d banks > %d\n", banks_count, 128);
+#endif
+        banks_count = 128;
+    }
+#ifdef ENABLE_UART
+    printf("Loading %d ROM banks\n", banks_count);
+#endif
+    for (int i=0; i<banks_count; i++) {
+        memcpy(banks[i], rom + i*BANK_LENGTH, BANK_LENGTH);
+    }
+#ifdef ENABLE_UART
+    printf("Loaded\n");
+#endif
+#endif
+
+    // TODO Check RAM content !!
+    for (int i=0; i<banks_count; i++) {
+        if (memcmp(banks[i], rom + i*BANK_LENGTH, BANK_LENGTH) != 0) {
+#ifdef ENABLE_UART
+            printf("Mismatch between RAM banks and ROM in flash\n");
+#endif
+        }
+    }
+
+    // TODO Output some data from ram banks ??
+#ifdef ENABLE_UART
+    for (int i=0; i<banks_count; i++) {
+        printf("Bank 0x%02x @ 0x%08x: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+                    i, banks[i],
+                    banks[i][0], banks[i][1], banks[i][2], banks[i][3], banks[i][4], banks[i][5], banks[i][6], banks[i][7],
+                    banks[i][8], banks[i][9], banks[i][10], banks[i][11], banks[i][12], banks[i][13], banks[i][14], banks[i][15]
+        );
+    }
+#endif
+
+
+#ifdef ENABLE_CIC
     // Start core1 with CIC emulator
     multicore_launch_core1(core1_entry);
+#endif
 
+
+#ifdef ENABLE_BUS
     // Configure GPIOs
     gpio_set_dir_masked64(SNES_ALL_PINS_MASK, 0x0000000000000000);
     gpio_put_masked64(SNES_ALL_PINS_MASK, 0x0000000000000000);
     gpio_set_function_masked64(SNES_ALL_PINS_MASK, GPIO_FUNC_SIO);
 
+/*
     // FIXME Required ??
     gpio_set_slew_rate(SNES_DATA_PINS_SHIFT, GPIO_SLEW_RATE_FAST);
     gpio_set_slew_rate(SNES_DATA_PINS_SHIFT+1, GPIO_SLEW_RATE_FAST);
@@ -507,14 +783,17 @@ int main() {
     gpio_set_drive_strength(SNES_DATA_PINS_SHIFT+5, GPIO_DRIVE_STRENGTH_8MA);
     gpio_set_drive_strength(SNES_DATA_PINS_SHIFT+6, GPIO_DRIVE_STRENGTH_8MA);
     gpio_set_drive_strength(SNES_DATA_PINS_SHIFT+7, GPIO_DRIVE_STRENGTH_8MA);
+*/
 
     // Erratum E9: disable IE
     /*for (int pin = 0; pin < 34; pin++) {
         gpio_set_input_enabled(pin, false);
     }*/
 //    gpio_disable_ie();
+#endif
 
     romtype = rom[0x7fd5] & 0x0f;  // 0: LoROM, 1: HiROM, 5: ExHiROM
+#ifdef ENABLE_UART
     if (romtype == 0) { // LoROM
         printf("ROM type: LoROM\n");
     } else if (romtype == 1) {  // HiROM
@@ -523,7 +802,31 @@ int main() {
         printf("ROM type: ExHiROM\n");
     }
 
+    // TODO Also check
+    //      ROM speed (rom[0x7fd5] & 0x10)
+    //      Chipset (rom[0x7fd6] & 0x0f)
+    //      Coprocessor (rom[0x7fd6] & 0xf0)
+    //      ROM size (rom[0x7fd7])
+    //      RAM size (rom[0x7fd8])
+    //      Checksum ??
+
     printf("Waiting for SNES to boot...\n");
+#endif
+
+    /*while (true) {
+        tight_loop_contents();
+    }*/
+
+
+    /*uint32_t wait = 1000;
+    int dbg = 1;
+    while (true) {
+        // TODO switch debug pin every 1000 cic pulses
+        wait_until_clock_pulses(wait);
+        gpio_put(DEBUG_PIN, dbg);
+        dbg = !dbg;
+        wait += 1000;
+    }*/
 
     // Erratum E9: enable IE just before reading, disable right after reading
     /*
@@ -541,6 +844,8 @@ int main() {
     }
 
 
+
+#ifdef ENABLE_BUS
 #ifdef DEBUG
     //while (counter++ < BUFFER_SIZE) {
     #ifdef DEBUG_KEEPALIVE
@@ -596,7 +901,9 @@ int main() {
         uint8_t data = 0xff;
         if (data_location_in_rom > rom_size) {
             // TODO out of bounds!!!
+#ifdef ENABLE_UART
             printf("Out of bound! Address=%06x LocationInRom=%04x\n", address, data_location_in_rom);
+#endif
 
     #ifdef DEBUG
             addresses[(counter-1)%BUFFER_SIZE] = address;
@@ -604,17 +911,33 @@ int main() {
             datas_out[(counter-1)%BUFFER_SIZE] = data << SNES_DATA_PINS_SHIFT;
     #endif
 
-            break;
+            //break;
         } else {
-            data = rom[data_location_in_rom];
+            //data = rom[data_location_in_rom];
+
+#ifdef BANKS_16K
+            // TODO Read from 16KiB banks in RAM
+            int bank = data_location_in_rom >> 14;
+            int addr = data_location_in_rom & 0x3fff;
+            data = banks[bank][addr];
+#endif
+
+#ifdef BANKS_4K
+            // TODO Read from 4KiB banks in RAM
+            int bank = data_location_in_rom >> 12;
+            int addr = data_location_in_rom & 0x0fff;
+            data = banks[bank][addr];
+#endif
         }
         //uint8_t data = rom[data_location_in_rom]; //(address & 0xf000) == 0xf000 ? rom[address & 0x7fff] : rom[address & 0x6fff];    // FIXME
         //printf("Data=%02x\n", data);
 
         uint64_t data_out = data << SNES_DATA_PINS_SHIFT;
 
+
         gpio_set_dir_out_masked64(SNES_DATA_PINS_MASK);
         gpio_put_masked64(SNES_DATA_PINS_MASK, data_out);
+
 
 
         //gpio_set_input_enabled(12, false);
@@ -651,9 +974,12 @@ int main() {
         // FIXME when to clear data bus ??
 
         // TODO set as high-impedance ?!
+
         gpio_set_dir_in_masked64(SNES_DATA_PINS_MASK);
         //gpio_clr_mask64(SNES_DATA_PINS_MASK);
+
     }
+#endif
 
 #ifdef DEBUG
     for (int i=0; i<BUFFER_SIZE && i<COUNTER_THRESHOLD && i<counter; i++) {

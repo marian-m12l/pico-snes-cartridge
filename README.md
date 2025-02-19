@@ -22,7 +22,7 @@ On rp2350 board (e.g. PGA2350):
 ```
 mkdir build
 cd build
-cmake -DPICO_SDK_PATH=/path/to/pico-sdk-2.0.0 ..
+cmake -DPICO_SDK_PATH=/path/to/pico-sdk-2.1.0 -DPICO_BOARD=pimoroni_pga2350 ..
 make
 ```
 

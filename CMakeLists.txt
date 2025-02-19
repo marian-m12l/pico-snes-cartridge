@@ -38,6 +38,6 @@ pico_set_program_version(pico-snes-cartridge "0.1")
 pico_enable_stdio_uart(pico-snes-cartridge 1)
 pico_enable_stdio_usb(pico-snes-cartridge 0)
 
-target_link_libraries(pico-snes-cartridge pico_stdlib pico_multicore hardware_pio hardware_dma)
+target_link_libraries(pico-snes-cartridge pico_stdlib pico_multicore hardware_pio hardware_dma hardware_xip_cache)
 
 pico_add_extra_outputs(pico-snes-cartridge)
