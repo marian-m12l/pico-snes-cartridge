@@ -54,17 +54,24 @@ uint16_t repetition[BUFFER_SIZE];
 #define CACHE_AS_SRAM_OFFSET 0x02000000
 
 
-//#define BANKS_16K 1
-#define BANKS_4K 1
+//#define NO_LOAD 1
+#define LOAD_NO_BANKS 1
+//#define LOAD_BANKS_16K 1
+//#define LOAD_BANKS_4K 1
 
-#ifdef BANKS_16K
+#ifdef LOAD_NO_BANKS
+#define ROM_MAX_LENGTH (256*1024)
+uint8_t sram_rom[ROM_MAX_LENGTH];
+#endif
+
+#ifdef LOAD_BANKS_16K
 #define BANK_LENGTH (16*1024)
 uint8_t* xip_bank31 = (uint8_t*) (XIP_BASE+CACHE_AS_SRAM_OFFSET);
 uint8_t sram_banks[31][BANK_LENGTH];
 uint8_t* banks[32]; // 524288 bytes of rom data across 32 banks
 #endif
 
-#ifdef BANKS_4K
+#ifdef LOAD_BANKS_4K
 // TODO 128 banks of 4 KiB to add USB RAM ??? 1 bank (4KiB) in USB RAM + 4 banks (16KiB) in pinned cache + 123 banks (492KiB) in main RAM
 #define BANK_LENGTH (4*1024)
 uint8_t* xip_banks = (uint8_t*) (XIP_BASE+CACHE_AS_SRAM_OFFSET);
@@ -642,7 +649,27 @@ int main() {
 #endif
 
 
-#ifdef BANKS_16K
+#ifdef LOAD_NO_BANKS
+    int size = rom_size;
+    if (size > ROM_MAX_LENGTH) {
+#ifdef ENABLE_UART
+        printf("Unsupported ROM size: %d > %d\n", size, ROM_MAX_LENGTH);
+    //sleep_ms(1000);
+#endif
+        size = ROM_MAX_LENGTH;
+    }
+#ifdef ENABLE_UART
+    printf("Loading %d bytes ROM\n", size);
+    //sleep_ms(1000);
+#endif
+    memcpy(sram_rom, rom, size);
+#ifdef ENABLE_UART
+    printf("Loaded\n");
+    //sleep_ms(1000);
+#endif
+#endif
+
+#ifdef LOAD_BANKS_16K
     for (int i=0; i<31; i++) {
         banks[i] = sram_banks[i];
     }
@@ -671,7 +698,7 @@ int main() {
 #endif
 #endif
 
-#ifdef BANKS_4K
+#ifdef LOAD_BANKS_4K
     // FIXME Should reset USB controller before accessing USB DPRAM @ 0x50100000 ??
     // TODO bit 28 of RESETS ??
     /*
@@ -730,6 +757,7 @@ int main() {
 #endif
 #endif
 
+#if defined(LOAD_BANKS_16K) || defined(LOAD_BANKS_4K)
     // TODO Check RAM content !!
     for (int i=0; i<banks_count; i++) {
         if (memcmp(banks[i], rom + i*BANK_LENGTH, BANK_LENGTH) != 0) {
@@ -748,6 +776,7 @@ int main() {
                     banks[i][8], banks[i][9], banks[i][10], banks[i][11], banks[i][12], banks[i][13], banks[i][14], banks[i][15]
         );
     }
+#endif
 #endif
 
 
@@ -913,16 +942,22 @@ int main() {
 
             //break;
         } else {
-            //data = rom[data_location_in_rom];
+#ifdef NO_LOAD
+            data = rom[data_location_in_rom];
+#endif
 
-#ifdef BANKS_16K
+#ifdef LOAD_NO_BANKS
+            data = sram_rom[data_location_in_rom];
+#endif
+
+#ifdef LOAD_BANKS_16K
             // TODO Read from 16KiB banks in RAM
             int bank = data_location_in_rom >> 14;
             int addr = data_location_in_rom & 0x3fff;
             data = banks[bank][addr];
 #endif
 
-#ifdef BANKS_4K
+#ifdef LOAD_BANKS_4K
             // TODO Read from 4KiB banks in RAM
             int bank = data_location_in_rom >> 12;
             int addr = data_location_in_rom & 0x0fff;
