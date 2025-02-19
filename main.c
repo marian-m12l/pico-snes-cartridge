@@ -15,6 +15,8 @@
 #define ENABLE_UART 1
 //#define ENABLE_CIC 1
 #define ENABLE_BUS 1
+#define CHECK_ADDR_VALIDITY 1
+#define FORCE_LOROM 1
 
 #ifdef DEBUG
 //#define DEBUG_KEEPALIVE 1
@@ -926,12 +928,19 @@ int main() {
         //gpio_set_input_enabled(23, false);
         //printf("Data requested. Address=%06x\n", address);
 
+#ifdef FORCE_LOROM
+        uint32_t bank = address >> 16;
+        uint32_t data_location_in_rom = (bank & 0x7f) * 32768 + (address & 0x7fff);
+#else
         uint32_t data_location_in_rom = map_address_to_rom(address);
-        uint8_t data = 0xff;
+#endif
+        uint8_t data;
+#ifdef CHECK_ADDR_VALIDITY
+        data = 0xff;
         if (data_location_in_rom > rom_size) {
             // TODO out of bounds!!!
 #ifdef ENABLE_UART
-            printf("Out of bound! Address=%06x LocationInRom=%04x\n", address, data_location_in_rom);
+            //FIXME printf("Out of bound! Address=%06x LocationInRom=%04x\n", address, data_location_in_rom);
 #endif
 
     #ifdef DEBUG
@@ -942,6 +951,8 @@ int main() {
 
             //break;
         } else {
+#endif
+
 #ifdef NO_LOAD
             data = rom[data_location_in_rom];
 #endif
@@ -963,7 +974,10 @@ int main() {
             int addr = data_location_in_rom & 0x0fff;
             data = banks[bank][addr];
 #endif
+
+#ifdef CHECK_ADDR_VALIDITY
         }
+#endif
         //uint8_t data = rom[data_location_in_rom]; //(address & 0xf000) == 0xf000 ? rom[address & 0x7fff] : rom[address & 0x6fff];    // FIXME
         //printf("Data=%02x\n", data);
 
