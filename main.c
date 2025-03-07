@@ -12,11 +12,14 @@
 
 //#define DEBUG 1
 //#define CIC_DEBUG 1
-#define ENABLE_UART 1
-//#define ENABLE_CIC 1
+//#define ENABLE_UART 1
+#define ENABLE_CIC 1
 #define ENABLE_BUS 1
-#define CHECK_ADDR_VALIDITY 1
-#define FORCE_LOROM 1
+//#define CHECK_ADDR_VALIDITY 1
+#define FORCE_LOROM 1   // Required for FastROM
+//#define FORCE_HIROM 1   // Required for FastROM
+
+#define CIC_EXTRA_CYCLES_LEFT_RIGHT 8  //8
 
 #ifdef DEBUG
 //#define DEBUG_KEEPALIVE 1
@@ -32,10 +35,12 @@ uint16_t repetition[BUFFER_SIZE];
 #define SNES_ADDR_PINS_MASK  0x0000000000ffffff
 #define SNES_DATA_PINS_MASK  0x00000000ff000000
 #define SNES_DATA_PINS_SHIFT 24
-#define SNES_RD_PIN_MASK     0x0000000200000000
+
+#define SNES_CART_PIN        32
+#define SNES_RD_PIN          33
 #define SNES_CART_PIN_MASK   0x0000000100000000
-#define SNES_CTRL_PINS_MASK  (SNES_RD_PIN_MASK | SNES_CART_PIN_MASK)
-// TODO Output to unused pins (41 and 42?) for debug ??
+#define SNES_RD_PIN_MASK     0x0000000200000000
+#define SNES_CTRL_PINS_MASK  (SNES_CART_PIN_MASK | SNES_RD_PIN_MASK)
 
 #define SNES_CIC_P1_PIN      37
 #define SNES_CIC_P2_PIN      38
@@ -47,6 +52,7 @@ uint16_t repetition[BUFFER_SIZE];
 #define SNES_CIC_IO_PINS_MASK  (SNES_CIC_P1_PIN_MASK | SNES_CIC_P2_PIN_MASK)
 #define SNES_CIC_PINS_MASK  (SNES_CIC_IO_PINS_MASK | SNES_CIC_CLK_PIN_MASK | SNES_CIC_RST_PIN_MASK)
 
+// TODO Output to unused pins (41 and 42?) for debug ??
 #define DEBUG_PIN            41
 #define DEBUG_PINS_MASK      0x0000020000000000
 
@@ -107,10 +113,11 @@ uint32_t map_address_to_rom(uint32_t address) {
         }*/
     } else if (romtype == 1) {  // HiROM
         // HiROM: Up to 64 64KB-banks. Bank indexing starting from 0xc0. Each bank starts at 0x0000
-        return (bank & 0x3f) * 65536 + address;
+        // TODO Handle ROM mirror ?
+        return (bank & 0x3f) * 65536 + (address & 0xffff);
     } else {
         // TODO Add support for ExHiROM
-        return (bank & 0x3f) * 65536 + address;
+        return (bank & 0x3f) * 65536 + (address & 0xffff);
     }
 }
 #endif
@@ -403,7 +410,7 @@ void core1_entry() {
                 unsigned char input = lockseed[restart] & 1;
                 // FIXME wait_next += 8 * 4;
                 wait_until_clock_pulses(wait_next);
-                wait_next += 8 * 4; // FIXME
+                wait_next += CIC_EXTRA_CYCLES_LEFT_RIGHT * 4; // FIXME
                 // Output keyseed bit to P2 or P1
 #ifdef CIC_DEBUG
                 if (first) {
@@ -417,10 +424,10 @@ void core1_entry() {
                 restart++;
 
                 // TODO If we expect to receive a '1' from the lock, measure our drift and adjust
-                if (!adjusted && input != 0) {
+                if (/*!adjusted &&*/ input != 0) {
                     uint32_t now = ~cic_clock_count;
                     // FIXME Should add a timeout and die in case we never read the expected '1'
-                    uint32_t timeout = now + 80;    // We output the value for 20 instruction cycles (80 cic pulses). No need to wait longer, we're already cooked...
+                    uint32_t timeout = now + ((CIC_EXTRA_CYCLES_LEFT_RIGHT*2 + 4)*4);    // We output the value for 20 instruction cycles (80 cic pulses). No need to wait longer, we're already cooked...
                     while((gpio_get_all64() & (swap ? SNES_CIC_P2_PIN_MASK : SNES_CIC_P1_PIN_MASK)) == 0 && (~cic_clock_count) < timeout) {
                         tight_loop_contents();
                     }
@@ -435,12 +442,12 @@ void core1_entry() {
                         break;
                     }
                     uint32_t delay_cycles = (~cic_clock_count) - now;
-                    if (delay_cycles < 20) {
+                    if (delay_cycles < (CIC_EXTRA_CYCLES_LEFT_RIGHT*4)-4) {
                         // TODO We are drifting late, let's shorten our delay by 3*4=12 cycles
-                        wait_next -= 3 * 4;
-                    } else if (delay_cycles > 44) {
+                        wait_next -= 1 * 4;
+                    } else if (delay_cycles > (CIC_EXTRA_CYCLES_LEFT_RIGHT*4)+4) {
                         // TODO We are drifting early, let's lengthen our delay by 3*4=12 cycles
-                        wait_next += 3 * 4;
+                        wait_next += 1 * 4;
                     }
                     adjusted = true;
 
@@ -471,7 +478,7 @@ void core1_entry() {
 
                 // TODO Just time the GPIO output with cpu instructions as it may be too short to actually count cic cycles here ?
                 wait_next += 4 * 4; // FIXME 3 * 4;
-                wait_next += 8 * 4; // FIXME
+                wait_next += CIC_EXTRA_CYCLES_LEFT_RIGHT * 4; // FIXME
                 wait_until_clock_pulses(wait_next);
                 // Clear output
                 gpio_put(swap ? SNES_CIC_P1_PIN : SNES_CIC_P2_PIN, 0);
@@ -483,7 +490,7 @@ void core1_entry() {
                 }
 #endif
 
-                wait_clock_pulses(72-8/*FIXME*/);  // TODO how long to wait before checking ??
+                wait_clock_pulses(72-CIC_EXTRA_CYCLES_LEFT_RIGHT/*FIXME*/);  // TODO how long to wait before checking ??
                 // TODO Both pins must be low when no bit transfer takes place
                 // If not -> restart cic emulation
                 if ((gpio_get_all64() & SNES_CIC_IO_PINS_MASK) != 0) {
@@ -496,7 +503,7 @@ void core1_entry() {
                     break;
                 }
                 
-                wait_next += (81-8/*FIXME*/) * 4;    // FIXME 82 * 4;
+                wait_next += (81-CIC_EXTRA_CYCLES_LEFT_RIGHT/*FIXME*/) * 4;    // FIXME 82 * 4;
             }
             if (die) {
                 break;
@@ -623,6 +630,8 @@ int main() {
     //sleep_ms(1000);
 
 
+// No pinning if reading ROM from flash
+#if defined(LOAD_BANKS_16K) || defined(LOAD_BANKS_4K)
 #ifdef ENABLE_UART
     printf("Pinning 16K of cache lines\n");
     //sleep_ms(1000);
@@ -648,6 +657,7 @@ int main() {
 #ifdef ENABLE_UART
     printf("Pinned\n");
     //sleep_ms(1000);
+#endif
 #endif
 
 
@@ -794,7 +804,11 @@ int main() {
     gpio_put_masked64(SNES_ALL_PINS_MASK, 0x0000000000000000);
     gpio_set_function_masked64(SNES_ALL_PINS_MASK, GPIO_FUNC_SIO);
 
-/*
+    // TODO disable hysteresis on /CART and /CART to shave off 2 cycles of latency??
+    gpio_set_input_hysteresis_enabled(SNES_CART_PIN, false);
+    gpio_set_input_hysteresis_enabled(SNES_RD_PIN, false);
+
+
     // FIXME Required ??
     gpio_set_slew_rate(SNES_DATA_PINS_SHIFT, GPIO_SLEW_RATE_FAST);
     gpio_set_slew_rate(SNES_DATA_PINS_SHIFT+1, GPIO_SLEW_RATE_FAST);
@@ -805,6 +819,7 @@ int main() {
     gpio_set_slew_rate(SNES_DATA_PINS_SHIFT+6, GPIO_SLEW_RATE_FAST);
     gpio_set_slew_rate(SNES_DATA_PINS_SHIFT+7, GPIO_SLEW_RATE_FAST);
 
+/*
     // FIXME Required ??
     gpio_set_drive_strength(SNES_DATA_PINS_SHIFT, GPIO_DRIVE_STRENGTH_8MA);
     gpio_set_drive_strength(SNES_DATA_PINS_SHIFT+1, GPIO_DRIVE_STRENGTH_8MA);
@@ -823,14 +838,54 @@ int main() {
 //    gpio_disable_ie();
 #endif
 
-    romtype = rom[0x7fd5] & 0x0f;  // 0: LoROM, 1: HiROM, 5: ExHiROM
+    bool found_header = false;
+    uint8_t romspeed;
+    // First, try to read LoROM header @ 0x7fc0
+    uint16_t complement = rom[0x7fdc] | (rom[0x7fdd] << 8); // TODO *((uint16_t*)rom[0x7fdc]) ??
+    uint16_t checksum = rom[0x7fde] | (rom[0x7fdf] << 8);   // TODO *((uint16_t*)rom[0x7fde]) ??
+    if ((checksum + complement) == 0xffff && (checksum != 0) && (complement != 0)) {
+        // Checksum matches
+        uint8_t rom_speed_and_mapping = rom[0x7fd5];
+        if ((rom_speed_and_mapping & ~0x10) == 0x20) {
+            romtype = rom_speed_and_mapping & 0x0f; // 0 == LoROM
+            romspeed = (rom_speed_and_mapping & 0x10) >> 4; // 0 == SlowROM, 1 == FastROM
+            found_header = true;
+        }
+    }
+    // Then, try to read HiROM header @ 0xffc0
+    if (!found_header && rom_size >= 0x10000) {
+        uint16_t complement = rom[0xffdc] | (rom[0xffdd] << 8); // TODO *((uint16_t*)rom[0xffdc]) ??
+        uint16_t checksum = rom[0xffde] | (rom[0xffdf] << 8);   // TODO *((uint16_t*)rom[0xffde]) ??
+        if ((checksum + complement) == 0xffff && (checksum != 0) && (complement != 0)) {
+            uint8_t rom_speed_and_mapping = rom[0xffd5];
+            if ((rom_speed_and_mapping & ~0x10) == 0x21) {
+                romtype = rom_speed_and_mapping & 0x0f; // 1 == HiROM
+                romspeed = (rom_speed_and_mapping & 0x10) >> 4; // 0 == SlowROM, 1 == FastROM
+                found_header = true;
+            }
+        }
+    }
+    //romtype = rom[0x7fd5] & 0x0f;  // 0: LoROM, 1: HiROM, 5: ExHiROM
+    // TODO LoROM header is at 0x7fc0
+    // TODO HiROM header is at 0xffc0
+    // TODO ExHiROM header is at 0x40ffc0 --> > 4 MiB so out of scope
 #ifdef ENABLE_UART
+    if (!found_header) {
+        printf("Failed to read ROM header --> Defaulting to LoROM ?\n");
+        romtype = rom[0x7fd5] & 0x0f;
+        romspeed = (rom[0x7fd5] & 0x10) >> 4;
+    }
     if (romtype == 0) { // LoROM
         printf("ROM type: LoROM\n");
     } else if (romtype == 1) {  // HiROM
         printf("ROM type: HiROM\n");
-    } else {
+    }/* else {
         printf("ROM type: ExHiROM\n");
+    }*/
+    if (romspeed == 0) { // SlowROM
+        printf("ROM speed: SlowROM\n");
+    } else if (romspeed == 1) {  // FastROM
+        printf("ROM speed: FastROM\n");
     }
 
     // TODO Also check
@@ -929,10 +984,24 @@ int main() {
         //printf("Data requested. Address=%06x\n", address);
 
 #ifdef FORCE_LOROM
-        uint32_t bank = address >> 16;
-        uint32_t data_location_in_rom = (bank & 0x7f) * 32768 + (address & 0x7fff);
+        uint32_t lorom_bank = address >> 16;
+        uint32_t data_location_in_rom = (lorom_bank & 0x7f) * 32768 + (address & 0x7fff);
+#else
+#ifdef FORCE_HIROM
+        // TODO Handle ROM mirror ? banks 0x00-3F + 0x80-BF @ 0x8000-0xFFFF
+        uint32_t hirom_bank = address >> 16;
+        uint32_t data_location_in_rom = (hirom_bank & 0x3f) * 65536 + (address & 0xffff);
+        // FIXME for banks < 0xc0, only addresses > 0x8000 should be readable
+        /*if (bank < 0x40) {
+            data_location_in_rom = bank * 65536 + address;
+        } else if (bank > 0x7f && bank < 0xc0) {
+            data_location_in_rom = (bank & 0x7f) * 65536 + address;
+        } else {
+            data_location_in_rom = (bank & 0x3f) * 65536 + address;
+        }*/
 #else
         uint32_t data_location_in_rom = map_address_to_rom(address);
+#endif
 #endif
         uint8_t data;
 #ifdef CHECK_ADDR_VALIDITY
