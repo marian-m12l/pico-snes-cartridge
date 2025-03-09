@@ -4079,6 +4079,7 @@
 	)
 	(label "CPU_CLK"
 		(at 21.59 118.11 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4122,6 +4123,7 @@
 	)
 	(label "USB_DM"
 		(at 139.7 71.12 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4176,6 +4178,7 @@
 	)
 	(label "CIC_P1_DOUT"
 		(at 62.23 105.41 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4197,6 +4200,7 @@
 	)
 	(label "GP45"
 		(at 139.7 104.14 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4229,6 +4233,7 @@
 	)
 	(label "LINE_L"
 		(at 99.06 157.48 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4250,6 +4255,7 @@
 	)
 	(label "GP47"
 		(at 111.76 144.78 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4260,6 +4266,7 @@
 	)
 	(label "VBUS"
 		(at 109.22 58.42 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4325,6 +4332,7 @@
 	)
 	(label "CIC_P1_DOUT"
 		(at 233.68 106.68 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4357,6 +4365,7 @@
 	)
 	(label "RUN"
 		(at 139.7 66.04 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4378,6 +4387,7 @@
 	)
 	(label "EXPAND"
 		(at 99.06 116.84 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4410,6 +4420,7 @@
 	)
 	(label "/RESET"
 		(at 21.59 115.57 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4420,6 +4431,7 @@
 	)
 	(label "SWCLK"
 		(at 139.7 93.98 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4463,6 +4475,7 @@
 	)
 	(label "PA6"
 		(at 99.06 121.92 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4495,6 +4508,7 @@
 	)
 	(label "USB_VBUS"
 		(at 99.06 30.48 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4516,6 +4530,7 @@
 	)
 	(label "PA4"
 		(at 99.06 152.4 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4537,6 +4552,7 @@
 	)
 	(label "LINE_R"
 		(at 62.23 120.65 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4547,6 +4563,7 @@
 	)
 	(label "EXPAND"
 		(at 62.23 100.33 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4557,6 +4574,7 @@
 	)
 	(label "{slash}PARD"
 		(at 99.06 127 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4589,6 +4607,7 @@
 	)
 	(label "GP42"
 		(at 172.72 121.92 270)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4599,6 +4618,7 @@
 	)
 	(label "SWDIO"
 		(at 139.7 96.52 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4620,6 +4640,7 @@
 	)
 	(label "USB_DP"
 		(at 99.06 33.02 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4630,6 +4651,7 @@
 	)
 	(label "GP43"
 		(at 111.76 154.94 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4640,6 +4662,7 @@
 	)
 	(label "CPU_CLK"
 		(at 99.06 139.7 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4661,6 +4684,7 @@
 	)
 	(label "GP42"
 		(at 111.76 157.48 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4682,6 +4706,7 @@
 	)
 	(label "{slash}PAWR"
 		(at 99.06 129.54 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4703,6 +4728,7 @@
 	)
 	(label "CIC_P7_RESET"
 		(at 62.23 113.03 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4757,6 +4783,7 @@
 	)
 	(label "GP43"
 		(at 160.02 121.92 270)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4789,6 +4816,7 @@
 	)
 	(label "GP45"
 		(at 111.76 149.86 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4799,6 +4827,7 @@
 	)
 	(label "{slash}RESET"
 		(at 233.68 96.52 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4820,6 +4849,7 @@
 	)
 	(label "BOOTSEL"
 		(at 139.7 73.66 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4830,6 +4860,7 @@
 	)
 	(label "/PAWR"
 		(at 62.23 90.17 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4840,6 +4871,7 @@
 	)
 	(label "PA1"
 		(at 62.23 67.31 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4861,6 +4893,7 @@
 	)
 	(label "USB_VBUS"
 		(at 101.6 48.26 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4871,6 +4904,7 @@
 	)
 	(label "3V3_EN"
 		(at 139.7 63.5 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4881,6 +4915,7 @@
 	)
 	(label "LINE_L"
 		(at 62.23 118.11 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4891,6 +4926,7 @@
 	)
 	(label "GND"
 		(at 99.06 97.79 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4912,6 +4948,7 @@
 	)
 	(label "PA2"
 		(at 62.23 69.85 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4922,6 +4959,7 @@
 	)
 	(label "{slash}IRQ"
 		(at 233.68 93.98 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4943,6 +4981,7 @@
 	)
 	(label "CIC_P6_CLK"
 		(at 62.23 110.49 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4953,6 +4992,7 @@
 	)
 	(label "A14"
 		(at 233.68 91.44 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4974,6 +5014,7 @@
 	)
 	(label "GP44"
 		(at 111.76 152.4 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4984,6 +5025,7 @@
 	)
 	(label "GND"
 		(at 111.76 30.48 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4994,6 +5036,7 @@
 	)
 	(label "USB_DM"
 		(at 111.76 33.02 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5037,6 +5080,7 @@
 	)
 	(label "PA5"
 		(at 62.23 77.47 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5058,6 +5102,7 @@
 	)
 	(label "CIC_P7_RESET"
 		(at 182.88 121.92 270)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5068,6 +5113,7 @@
 	)
 	(label "/IRQ"
 		(at 21.59 110.49 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5122,6 +5168,7 @@
 	)
 	(label "REFRESH"
 		(at 62.23 97.79 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5132,6 +5179,7 @@
 	)
 	(label "PA2"
 		(at 99.06 147.32 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5153,6 +5201,7 @@
 	)
 	(label "{slash}WRAM"
 		(at 99.06 114.3 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5163,6 +5212,7 @@
 	)
 	(label "SWCLK"
 		(at 99.06 100.33 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5184,6 +5234,7 @@
 	)
 	(label "GP41"
 		(at 170.18 121.92 270)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5194,6 +5245,7 @@
 	)
 	(label "ADC_VREF"
 		(at 139.7 91.44 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5204,6 +5256,7 @@
 	)
 	(label "/WR"
 		(at 21.59 107.95 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5214,6 +5267,7 @@
 	)
 	(label "GP44"
 		(at 162.56 121.92 270)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5246,6 +5300,7 @@
 	)
 	(label "GP46"
 		(at 139.7 76.2 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5256,6 +5311,7 @@
 	)
 	(label "CIC_P2_DIN"
 		(at 62.23 107.95 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5277,6 +5333,7 @@
 	)
 	(label "PA4"
 		(at 62.23 74.93 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5287,6 +5344,7 @@
 	)
 	(label "SYS_CLK"
 		(at 99.06 111.76 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5319,6 +5377,7 @@
 	)
 	(label "CIC_P6_CLK"
 		(at 180.34 121.92 270)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5329,6 +5388,7 @@
 	)
 	(label "GP47"
 		(at 139.7 99.06 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5339,6 +5399,7 @@
 	)
 	(label "REFRESH"
 		(at 99.06 119.38 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5349,6 +5410,7 @@
 	)
 	(label "PA3"
 		(at 62.23 72.39 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5359,6 +5421,7 @@
 	)
 	(label "{slash}WR"
 		(at 210.82 43.18 90)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5391,6 +5454,7 @@
 	)
 	(label "/WRAM"
 		(at 62.23 95.25 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5401,6 +5465,7 @@
 	)
 	(label "PA0"
 		(at 99.06 142.24 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5411,6 +5476,7 @@
 	)
 	(label "/PARD"
 		(at 62.23 87.63 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5421,6 +5487,7 @@
 	)
 	(label "PA7"
 		(at 99.06 124.46 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5431,6 +5498,7 @@
 	)
 	(label "PA3"
 		(at 99.06 149.86 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5441,6 +5509,7 @@
 	)
 	(label "GP46"
 		(at 111.76 147.32 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5451,6 +5520,7 @@
 	)
 	(label "3V3"
 		(at 111.76 97.79 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5461,6 +5531,7 @@
 	)
 	(label "PA6"
 		(at 62.23 80.01 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5471,6 +5542,7 @@
 	)
 	(label "VBUS"
 		(at 109.22 48.26 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5481,6 +5553,7 @@
 	)
 	(label "PA5"
 		(at 99.06 154.94 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5511,8 +5584,9 @@
 		)
 		(uuid "dc933983-e842-4a1b-886a-14e126e1672c")
 	)
-	(label "CIC_P1_DIN"
+	(label "CIC_P2_DIN"
 		(at 233.68 104.14 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5523,6 +5597,7 @@
 	)
 	(label "PA0"
 		(at 62.23 64.77 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5555,6 +5630,7 @@
 	)
 	(label "PA7"
 		(at 62.23 82.55 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5565,6 +5641,7 @@
 	)
 	(label "BOOTSEL"
 		(at 110.49 76.2 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5630,6 +5707,7 @@
 	)
 	(label "GND"
 		(at 100.33 76.2 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5662,6 +5740,7 @@
 	)
 	(label "3V3"
 		(at 139.7 88.9 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5672,6 +5751,7 @@
 	)
 	(label "SWDIO"
 		(at 111.76 100.33 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5693,6 +5773,7 @@
 	)
 	(label "LINE_R"
 		(at 99.06 160.02 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5703,6 +5784,7 @@
 	)
 	(label "GP41"
 		(at 111.76 160.02 0)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5724,6 +5806,7 @@
 	)
 	(label "PA1"
 		(at 99.06 144.78 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5734,6 +5817,7 @@
 	)
 	(label "SYS_CLK"
 		(at 21.59 120.65 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5755,6 +5839,7 @@
 	)
 	(label "USB_DP"
 		(at 139.7 68.58 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5765,6 +5850,7 @@
 	)
 	(label "VCC"
 		(at 101.6 58.42 180)
+		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)

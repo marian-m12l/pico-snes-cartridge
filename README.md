@@ -8,8 +8,12 @@ On rp2350 board (e.g. PGA2350):
 
 - Address bus `A0`-`A23`: GPIO 0 (`A0`) to 23 (`A23`)
 - Data bus `D0`-`D7`: GPIO 24 (`D0`) to 31 (`D7`)
-- Read pin `/CART`: GPIO 32
-- Cart pin `/RD`: GPIO 33
+- Cart pin `/CART`: GPIO 32
+- Read pin `/RD`: GPIO 33
+- CIC pin 24 `D1`: GPIO 37
+- CIC pin 55 `D2`: GPIO 38
+- CIC pin 56 `CLK`: GPIO 39
+- CIC pin 25 `RST`: GPIO 40
 
 - UART pins `TX` and `RX`: GPIO 44 and 45
 
@@ -18,7 +22,7 @@ On rp2350 board (e.g. PGA2350):
 ```
 mkdir build
 cd build
-cmake -DPICO_SDK_PATH=/path/to/pico-sdk-2.0.0 ..
+cmake -DPICO_SDK_PATH=/path/to/pico-sdk-2.1.0 -DPICO_BOARD=pimoroni_pga2350 ..
 make
 ```
 
