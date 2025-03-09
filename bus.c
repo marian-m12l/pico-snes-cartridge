@@ -31,6 +31,9 @@ uint8_t sram_banks[123][BANK_LENGTH];
 uint8_t* banks[128]; // 524288 bytes of rom data across 128 banks
 #endif
 
+#define SRAM_MAX_LENGTH (8*1024)
+uint8_t sram[SRAM_MAX_LENGTH];
+
 uint8_t romsize;
 uint8_t romtype;
 uint8_t romspeed;
@@ -215,39 +218,69 @@ void __not_in_flash_func(loop_lorom)() {
     }
 
     while (true) {
-        while((gpio_get_all64() & SNES_CTRL_PINS_MASK) != 0) {
+        while ((gpio_get_all64() & SNES_CART_PIN_MASK) != 0) {
              tight_loop_contents();
         }
-        uint32_t address = (gpio_get_all64() & SNES_ADDR_PINS_MASK);
+
+        uint64_t all64 = gpio_get_all64();
+        while ((all64 & SNES_RD_PIN_MASK) ^ (all64 & SNES_WR_PIN_MASK) == 0) {
+             all64 = gpio_get_all64();
+        }
+
+        uint32_t address = (all64 & SNES_ADDR_PINS_MASK);
         uint32_t lorom_bank = address >> 16;
-        uint32_t data_location_in_rom = (lorom_bank & 0x7f) * 32768 + (address & 0x7fff);
-        uint8_t data = 0xff;
-        if (data_location_in_rom <= romsize) {
+
+        if ((all64 & SNES_RD_PIN_MASK) == 0) {
+            // Read from ROM or SRAM
+            uint8_t data = 0xff;
+            // SRAM (banks 0x70-0x7d - 0x0000-0x7fff) FIXME 0x70-0x73 ???
+            if (lorom_bank >= 0x70 && lorom_bank <= 0x7d && !(address & 0x8000)) {
+                uint32_t data_location_in_sram = (lorom_bank - 0x70) * 32768 + (address & 0x7fff);
+                if (data_location_in_sram <= SRAM_MAX_LENGTH) {
+                    data = sram[data_location_in_sram];
+                }
+            } else {
+                uint32_t data_location_in_rom = (lorom_bank & 0x7f) * 32768 + (address & 0x7fff);
+                if (data_location_in_rom <= romsize) {
 #ifdef NO_LOAD
-            data = rom[data_location_in_rom];
+                    data = rom[data_location_in_rom];
 #endif
 #ifdef LOAD_NO_BANKS
-            data = sram_rom[data_location_in_rom];
+                    data = sram_rom[data_location_in_rom];
 #endif
 #ifdef LOAD_BANKS_16K
-            int bank = (data_location_in_rom >> 14) & 0x1f;
-            int addr = data_location_in_rom & 0x3fff;
-            data = banks[bank][addr];
+                    int bank = (data_location_in_rom >> 14) & 0x1f;
+                    int addr = data_location_in_rom & 0x3fff;
+                    data = banks[bank][addr];
 #endif
 #ifdef LOAD_BANKS_4K
-            int bank = (data_location_in_rom >> 12) & 0x7f;
-            int addr = data_location_in_rom & 0x0fff;
-            data = banks[bank][addr];
+                    int bank = (data_location_in_rom >> 12) & 0x7f;
+                    int addr = data_location_in_rom & 0x0fff;
+                    data = banks[bank][addr];
 #endif
+                }
+            }
+            uint64_t data_out = data << SNES_DATA_PINS_SHIFT;
+            gpio_set_dir_out_masked64(SNES_DATA_PINS_MASK);
+            gpio_put_masked64(SNES_DATA_PINS_MASK, data_out);
+            while((gpio_get_all64() & SNES_RD_PIN_MASK) == 0) {
+                tight_loop_contents();
+            }
+            gpio_set_dir_in_masked64(SNES_DATA_PINS_MASK);
+            //gpio_clr_mask64(SNES_DATA_PINS_MASK);
+        } else {
+            // TODO Write to SRAM (banks 0x70-0x7d - 0x0000-0x7fff) FIXME 0x70-0x73 ???
+            uint8_t data = (all64 & SNES_DATA_PINS_MASK) >> SNES_DATA_PINS_SHIFT;
+            if (lorom_bank >= 0x70 && lorom_bank <= 0x7d && !(address & 0x8000)) {
+                uint32_t data_location_in_sram = (lorom_bank - 0x70) * 32768 + (address & 0x7fff);
+                if (data_location_in_sram <= SRAM_MAX_LENGTH) {
+                    sram[data_location_in_sram] = data;
+                }
+            }
+            while((gpio_get_all64() & SNES_WR_PIN_MASK) == 0) {
+                tight_loop_contents();
+            }
         }
-        uint64_t data_out = data << SNES_DATA_PINS_SHIFT;
-        gpio_set_dir_out_masked64(SNES_DATA_PINS_MASK);
-        gpio_put_masked64(SNES_DATA_PINS_MASK, data_out);
-        while((gpio_get_all64() & SNES_RD_PIN_MASK) == 0) {
-            tight_loop_contents();
-        }
-        gpio_set_dir_in_masked64(SNES_DATA_PINS_MASK);
-        //gpio_clr_mask64(SNES_DATA_PINS_MASK);
     }
 }
 
@@ -255,6 +288,8 @@ void __not_in_flash_func(loop_hirom)() {
 #ifdef ENABLE_UART
     printf("Waiting for SNES to boot...\n");
 #endif
+
+    // TODO Support /RD and /WR
 
     while((gpio_get_all64() & SNES_CTRL_PINS_MASK) == 0) {
         tight_loop_contents();
