@@ -225,7 +225,7 @@ void __not_in_flash_func(loop_lorom)() {
         uint32_t lorom_bank = address >> 16;
         uint32_t data_location_in_rom = (lorom_bank & 0x7f) * 32768 + (address & 0x7fff);
         uint8_t data = 0xff;
-        if (data_location_in_rom <= romsize) {
+        if (data_location_in_rom < romsize) {
 #ifdef NO_LOAD
             data = rom[data_location_in_rom];
 #endif
@@ -272,7 +272,7 @@ void __not_in_flash_func(loop_hirom)() {
         uint32_t hirom_bank = address >> 16;
         uint32_t data_location_in_rom = (hirom_bank & 0x3f) * 65536 + (address & 0xffff);
         uint8_t data = 0xff;
-        if (data_location_in_rom <= romsize) {
+        if (data_location_in_rom < romsize) {
 #ifdef NO_LOAD
             data = rom[data_location_in_rom];
 #endif

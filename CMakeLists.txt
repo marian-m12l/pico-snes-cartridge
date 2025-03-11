@@ -46,7 +46,7 @@ target_compile_definitions(pico-snes-cartridge PRIVATE
   #LOAD_BANKS_16K=1
   LOAD_BANKS_4K=1
   
-  ENABLE_CIC=1
+  #ENABLE_CIC=1
   CIC_DEBUG=1
   CIC_REGION_PAL=1
 )
