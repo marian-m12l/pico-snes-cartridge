@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <string.h>
 #include "pico/stdlib.h"
 #include "hardware/xip_cache.h"
@@ -34,7 +35,10 @@ uint8_t* banks[128]; // 524288 bytes of rom data across 128 banks
 #define SRAM_MAX_LENGTH (8*1024)
 uint8_t sram[SRAM_MAX_LENGTH];
 
-uint8_t romsize;
+#define SRAM_MAX_LENGTH (8*1024)
+uint8_t sram[SRAM_MAX_LENGTH];
+
+uint32_t romsize;
 uint8_t romtype;
 uint8_t romspeed;
 

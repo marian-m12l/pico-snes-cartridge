@@ -16,11 +16,6 @@ add_executable(pico-snes-cartridge
     bus.c
     cic.c
     rom_helloworld.c
-    #rom_color.c
-    #rom_init32k.c
-    #rom_bazz1_32k.c
-    #rom_hello32k.c
-    #rom_adventure04.c
     #rom_mrdo.c             # SlowROM LoROM 256KiB
     #rom_snes3d_demo.c      # SlowROM LoROM 256KiB
     #rom_smw.c              # SlowROM LoROM 512KiB
