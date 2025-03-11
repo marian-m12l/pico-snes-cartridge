@@ -58,8 +58,10 @@ int main() {
 
 
     uint8_t romtype = init_rom();
+#ifdef ENABLE_CIC
     // Start CIC once we're done loading rom (and pinning xip cache)
     multicore_fifo_push_blocking(0xc1c0c1c0);
+#endif
     if (romtype == 0) { // LoROM
         loop_lorom();
     } else if (romtype == 1) {  // HiROM

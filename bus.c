@@ -31,7 +31,7 @@ uint8_t sram_banks[123][BANK_LENGTH];
 uint8_t* banks[128]; // 524288 bytes of rom data across 128 banks
 #endif
 
-uint8_t romsize;
+uint32_t romsize;
 uint8_t romtype;
 uint8_t romspeed;
 
