@@ -18,18 +18,20 @@ uint8_t sram_rom[ROM_MAX_LENGTH];
 #ifdef LOAD_BANKS_16K
 // 32 banks of 16 KiB (1 bank (16KiB) in pinned cache + 31 banks (496KiB) in main RAM)
 #define BANK_LENGTH (16*1024)
+#define MAX_BANKS_COUNT (32)
 uint8_t* xip_bank31 = (uint8_t*) (XIP_BASE+CACHE_AS_SRAM_OFFSET);
 uint8_t sram_banks[31][BANK_LENGTH];
-uint8_t* banks[32]; // 524288 bytes of rom data across 32 banks
+uint8_t* banks[MAX_BANKS_COUNT]; // 524288 bytes of rom data across 32 banks
 #endif
 
 #ifdef LOAD_BANKS_4K
 // 128 banks of 4 KiB (1 bank (4KiB) in USB RAM + 4 banks (16KiB) in pinned cache + 123 banks (492KiB) in main RAM)
 #define BANK_LENGTH (4*1024)
+#define MAX_BANKS_COUNT (128)
 uint8_t* xip_banks = (uint8_t*) (XIP_BASE+CACHE_AS_SRAM_OFFSET);
 uint8_t* usb_bank = (uint8_t*) (USBCTRL_DPRAM_BASE);
 uint8_t sram_banks[123][BANK_LENGTH];
-uint8_t* banks[128]; // 524288 bytes of rom data across 128 banks
+uint8_t* banks[MAX_BANKS_COUNT]; // 524288 bytes of rom data across 128 banks
 #endif
 
 uint32_t romsize;
@@ -77,11 +79,11 @@ void load_banks_16k() {
 #ifdef ENABLE_UART
     printf("ROM size: %d Banks count: %d\n", rom_size, banks_count);
 #endif
-    if (banks_count > 32) {
+    if (banks_count > MAX_BANKS_COUNT) {
 #ifdef ENABLE_UART
-        printf("Unsupported ROM size: %d banks > %d\n", banks_count, 32);
+        printf("Unsupported ROM size: %d banks > %d\n", banks_count, MAX_BANKS_COUNT);
 #endif
-        banks_count = 32;
+        banks_count = MAX_BANKS_COUNT;
     }
 #ifdef ENABLE_UART
     printf("Loading %d ROM banks\n", banks_count);
@@ -110,11 +112,11 @@ void load_banks_4k() {
 #ifdef ENABLE_UART
     printf("ROM size: %d Banks count: %d\n", rom_size, banks_count);
 #endif
-    if (banks_count > 128) {
+    if (banks_count > MAX_BANKS_COUNT) {
 #ifdef ENABLE_UART
-        printf("Unsupported ROM size: %d banks > %d\n", banks_count, 128);
+        printf("Unsupported ROM size: %d banks > %d\n", banks_count, MAX_BANKS_COUNT);
 #endif
-        banks_count = 128;
+        banks_count = MAX_BANKS_COUNT;
     }
 #ifdef ENABLE_UART
     printf("Loading %d ROM banks\n", banks_count);
@@ -278,12 +280,12 @@ void __not_in_flash_func(loop_hirom)() {
             data = sram_rom[data_location_in_rom];
 #endif
 #ifdef LOAD_BANKS_16K
-            int bank = data_location_in_rom >> 14;
+            int bank = (data_location_in_rom >> 14) & 0x1f;
             int addr = data_location_in_rom & 0x3fff;
             data = banks[bank][addr];
 #endif
 #ifdef LOAD_BANKS_4K
-            int bank = data_location_in_rom >> 12;
+            int bank = (data_location_in_rom >> 12) & 0x7f;
             int addr = data_location_in_rom & 0x0fff;
             data = banks[bank][addr];
 #endif
