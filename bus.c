@@ -40,15 +40,7 @@ uint32_t romsize;
 uint8_t romtype;
 uint8_t romspeed;
 
-// TODO Build rom entries dynamically from flash content
-roms_t my_roms = {
-    3,
-    {
-        { "ROM 1 9876543210987", (void*) 0x10100000 },
-        { "ROM 2              ", (void*) 0x10200000 },
-        { "ROM 3              ", (void*) 0x10300000 }
-    }
-};
+roms_t my_roms;
 
 uint8_t* __uninitialized_ram(selected_rom_addr);
 
@@ -425,4 +417,68 @@ void __not_in_flash_func(loop_hirom)() {
 
 uint8_t* selected_rom() {
     return selected_rom_addr;
+}
+
+const char* magic = "pico-snes-rom   ";
+uint16_t bsd_checksum(uint8_t* addr, uint32_t size) {
+    uint8_t ch;
+    uint16_t checksum = 0;
+
+    for (int i=0; i<size; i++) {
+        ch = *(addr + 32 + i);
+        checksum = (checksum >> 1) + ((checksum & 1) << 15);
+        checksum += ch;
+        checksum &= 0xffff;
+    }
+    return checksum;
+}
+void find_rom_entries() {
+    printf("find_rom_entries\n");
+    int romIndex = 0;
+    for (int i=1; i<16; i++) {
+        uint8_t* addr = (uint8_t*) 0x10000000 + i * 0x100000;
+        printf("addr=0x%08x\n", addr);
+        if (memcmp(addr, magic, 16) == 0) {
+            // Found magic bytes
+            printf("found magic\n");
+            uint32_t size = *((uint32_t*) (addr + 16));
+            printf("size=%d\n", size);
+            uint16_t checksum = *((uint16_t*) (addr + 30));
+            printf("checksum=0x%04x\n", checksum);
+            if (checksum == bsd_checksum(addr, size)) {
+                // Checksum matches
+                printf("checksum matches\n");
+                // Read name from rom header
+                uint8_t* name;
+                bool found_header = false;
+                uint8_t* romdata = addr + 32;
+                // First, try to read LoROM header @ 0x7fc0
+                uint16_t complement = romdata[0x7fdc] | (romdata[0x7fdd] << 8); // TODO *((uint16_t*)rom[0x7fdc]) ??
+                uint16_t checksum = romdata[0x7fde] | (romdata[0x7fdf] << 8);   // TODO *((uint16_t*)rom[0x7fde]) ??
+                if ((checksum + complement) == 0xffff && (checksum != 0) && (complement != 0)) {
+                    // Checksum matches
+                    name = &romdata[0x7fc0];
+                    found_header = true;
+                }
+                // Then, try to read HiROM header @ 0xffc0
+                if (!found_header && size >= 0x10000) {
+                    uint16_t complement = romdata[0xffdc] | (romdata[0xffdd] << 8); // TODO *((uint16_t*)rom[0xffdc]) ??
+                    uint16_t checksum = romdata[0xffde] | (romdata[0xffdf] << 8);   // TODO *((uint16_t*)rom[0xffde]) ??
+                    if ((checksum + complement) == 0xffff && (checksum != 0) && (complement != 0)) {
+                        name = &romdata[0xffc0];
+                        found_header = true;
+                    }
+                }
+                if (found_header) {
+                    strcpy(my_roms.entries[romIndex].name, name);
+                } else {
+                    strcpy(my_roms.entries[romIndex].name, "ROM ###");
+                }
+                my_roms.entries[romIndex].address = addr;
+                romIndex++;
+            }
+        }
+    }
+    printf("find_rom_entries: %d\n", romIndex);
+    my_roms.count = romIndex;
 }

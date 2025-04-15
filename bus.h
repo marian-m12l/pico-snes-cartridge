@@ -7,3 +7,4 @@ void loop_menu();
 void loop_lorom();
 void loop_hirom();
 uint8_t* selected_rom();
+void find_rom_entries();

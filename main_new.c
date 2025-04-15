@@ -57,6 +57,8 @@ int main() {
     gpio_set_slew_rate(SNES_DATA_PINS_SHIFT+6, GPIO_SLEW_RATE_FAST);
     gpio_set_slew_rate(SNES_DATA_PINS_SHIFT+7, GPIO_SLEW_RATE_FAST);
 
+    // Look for ROMs in flash memory
+    find_rom_entries();
 
     // Load menu and loop
     uint8_t romtype = init_rom(menu_rom, menu_rom_size);
@@ -69,9 +71,10 @@ int main() {
     loop_menu();
 
     // Rom was selected, load and run loop
-    if (selected_rom() != 0) {
-        // FIXME ROM size ??
-        uint8_t romtype = init_rom(selected_rom(), 1024*256);
+    uint8_t* selected = selected_rom();
+    if (selected != 0) {
+        uint32_t size = *((uint32_t*) (selected + 16));
+        uint8_t romtype = init_rom(selected + 32, size);
         
         // Release reset on console
         gpio_set_dir(SNES_RESET_PIN, false);

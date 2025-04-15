@@ -28,17 +28,12 @@ make
 
 # Adding ROMs
 
-Over SWD/JTAG using openocd:
+Add `rom.sfc` in slot `1`:
+```
+./tools/loadrom.sh rom.sfc 1"
+```
 
-```
-openocd-rpi/installed/bin/openocd -f interface/jlink.cfg -c "transport select swd" -c "adapter speed 6000" -f target/rp2350.cfg -c "program rom.sfc exit 0x10100000"
-```
-
-Over USB using picotool:
-
-```
-picotool load rom.sfc -o 0x10100000
-```
+Each slot (from 1 to 15) occupies 1MiB in flash memory.
 
 # Running
 
