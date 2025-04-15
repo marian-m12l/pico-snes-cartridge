@@ -26,6 +26,20 @@ cmake -DPICO_SDK_PATH=/path/to/pico-sdk-2.1.0 -DPICO_BOARD=pimoroni_pga2350 ..
 make
 ```
 
+# Adding ROMs
+
+Over SWD/JTAG using openocd:
+
+```
+openocd-rpi/installed/bin/openocd -f interface/jlink.cfg -c "transport select swd" -c "adapter speed 6000" -f target/rp2350.cfg -c "program rom.sfc exit 0x10100000"
+```
+
+Over USB using picotool:
+
+```
+picotool load rom.sfc -o 0x10100000
+```
+
 # Running
 
 ```
