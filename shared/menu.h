@@ -2,7 +2,7 @@
 
 typedef struct {
     //char len;
-    char name[21];
+    char name[22];
     void* address;
 } rom_t;
 

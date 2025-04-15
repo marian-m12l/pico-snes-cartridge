@@ -470,7 +470,7 @@ void find_rom_entries() {
                     }
                 }
                 if (found_header) {
-                    strcpy(my_roms.entries[romIndex].name, name);
+                    strncpy(my_roms.entries[romIndex].name, name, 21);
                 } else {
                     strcpy(my_roms.entries[romIndex].name, "ROM ###");
                 }
