@@ -7,6 +7,7 @@
 #include "bus.h"
 #include "cic.h"
 #include "pins.h"
+#include "rom.h"
 
 
 #ifdef ENABLE_CIC
@@ -43,7 +44,7 @@ int main() {
     gpio_put_masked64(SNES_ALL_PINS_MASK, 0x0000000000000000);
     gpio_set_function_masked64(SNES_ALL_PINS_MASK, GPIO_FUNC_SIO);
 
-    // Disable hysteresis on /CART and /CART to shave off 2 cycles of latency
+    // Disable hysteresis on /CART and /RD to shave off 2 cycles of latency
     gpio_set_input_hysteresis_enabled(SNES_CART_PIN, false);
     gpio_set_input_hysteresis_enabled(SNES_RD_PIN, false);
 
@@ -57,15 +58,29 @@ int main() {
     gpio_set_slew_rate(SNES_DATA_PINS_SHIFT+7, GPIO_SLEW_RATE_FAST);
 
 
-    uint8_t romtype = init_rom();
+    // Load menu and loop
+    uint8_t romtype = init_rom(menu_rom, menu_rom_size);
+
 #ifdef ENABLE_CIC
     // Start CIC once we're done loading rom (and pinning xip cache)
     multicore_fifo_push_blocking(0xc1c0c1c0);
 #endif
-    if (romtype == 0) { // LoROM
-        loop_lorom();
-    } else if (romtype == 1) {  // HiROM
-        loop_hirom();
+    
+    loop_menu();
+
+    // Rom was selected, load and run loop
+    if (selected_rom() != 0) {
+        // FIXME ROM size ??
+        uint8_t romtype = init_rom(selected_rom(), 1024*256);
+        
+        // Release reset on console
+        gpio_set_dir(SNES_RESET_PIN, false);
+        
+        if (romtype == 0) { // LoROM
+            loop_lorom();
+        } else if (romtype == 1) {  // HiROM
+            loop_hirom();
+        }
     }
 #endif
 

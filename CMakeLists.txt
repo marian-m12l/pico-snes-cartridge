@@ -15,7 +15,9 @@ add_executable(pico-snes-cartridge
     main_new.c
     bus.c
     cic.c
-    rom_helloworld.c
+    menu.c
+    #rom_helloworld.c
+    #rom_helloworld_mouse2.c
     #rom_mrdo.c             # SlowROM LoROM 256KiB
     #rom_snes3d_demo.c      # SlowROM LoROM 256KiB
     #rom_smw.c              # SlowROM LoROM 512KiB

@@ -7,6 +7,8 @@
 #include "pins.h"
 #include "rom.h"
 
+#include "shared/menu.h"
+
 
 #define CACHE_AS_SRAM_OFFSET 0x02000000
 
@@ -38,6 +40,18 @@ uint32_t romsize;
 uint8_t romtype;
 uint8_t romspeed;
 
+// TODO Build rom entries dynamically from flash content
+roms_t my_roms = {
+    3,
+    {
+        { "ROM 1 9876543210987", (void*) 0x10100000 },
+        { "ROM 2              ", (void*) 0x10200000 },
+        { "ROM 3              ", (void*) 0x10300000 }
+    }
+};
+
+uint8_t* __uninitialized_ram(selected_rom_addr);
+
 
 void pin_cache_lines() {
 #ifdef ENABLE_UART
@@ -51,8 +65,7 @@ void pin_cache_lines() {
 }
 
 #ifdef LOAD_NO_BANKS
-void load_no_banks() {
-    int size = rom_size;
+void load_no_banks(const uint8_t* romdata, uint32_t size) {
     if (size > ROM_MAX_LENGTH) {
 #ifdef ENABLE_UART
         printf("Unsupported ROM size: %d > %d\n", size, ROM_MAX_LENGTH);
@@ -62,12 +75,18 @@ void load_no_banks() {
 #ifdef ENABLE_UART
     printf("Loading %d bytes ROM\n", size);
 #endif
-    memcpy(sram_rom, rom, size);
+    memcpy(sram_rom, romdata, size);
+    // Verify ROM
+    if (memcmp(sram_rom, romdata, size) != 0) {
+#ifdef ENABLE_UART
+        printf("ROM mismatch\n");
+#endif
+    }
 }
 #endif
 
 #ifdef LOAD_BANKS_16K
-void load_banks_16k() {
+void load_banks_16k(const uint8_t* romdata, uint32_t size) {
     for (int i=0; i<31; i++) {
         banks[i] = sram_banks[i];
     }
@@ -75,9 +94,9 @@ void load_banks_16k() {
     // Bank 31 will NOT be zero-initialized by the BSS routine
     memset(xip_bank31, 0, BANK_LENGTH);
     // Load ROM into RAM
-    int banks_count = rom_size / BANK_LENGTH;
+    int banks_count = size / BANK_LENGTH;
 #ifdef ENABLE_UART
-    printf("ROM size: %d Banks count: %d\n", rom_size, banks_count);
+    printf("ROM size: %d Banks count: %d\n", size, banks_count);
 #endif
     if (banks_count > MAX_BANKS_COUNT) {
 #ifdef ENABLE_UART
@@ -89,13 +108,24 @@ void load_banks_16k() {
     printf("Loading %d ROM banks\n", banks_count);
 #endif
     for (int i=0; i<banks_count; i++) {
-        memcpy(banks[i], rom + i*BANK_LENGTH, BANK_LENGTH);
+        memcpy(banks[i], romdata + i*BANK_LENGTH, BANK_LENGTH);
     }
+    // Verify ROM
+    for (int i=0; i<banks_count; i++) {
+        if (memcmp(banks[i], romdata + i*BANK_LENGTH, BANK_LENGTH) != 0) {
+#ifdef ENABLE_UART
+            printf("ROM bank mismatch: %d\n", i);
+#endif
+        }
+    }
+#ifdef ENABLE_UART
+    printf("ROM banks verified\n");
+#endif
 }
 #endif
 
 #ifdef LOAD_BANKS_4K
-void load_banks_4k() {
+void load_banks_4k(const uint8_t* romdata, uint32_t size) {
     for (int i=0; i<123; i++) {
         banks[i] = sram_banks[i];
     }
@@ -108,9 +138,9 @@ void load_banks_4k() {
     memset(xip_banks, 0, 4*BANK_LENGTH);
     memset(usb_bank, 0, BANK_LENGTH);
     // Load ROM into RAM
-    int banks_count = rom_size / BANK_LENGTH;
+    int banks_count = size / BANK_LENGTH;
 #ifdef ENABLE_UART
-    printf("ROM size: %d Banks count: %d\n", rom_size, banks_count);
+    printf("ROM size: %d Banks count: %d\n", size, banks_count);
 #endif
     if (banks_count > MAX_BANKS_COUNT) {
 #ifdef ENABLE_UART
@@ -122,12 +152,34 @@ void load_banks_4k() {
     printf("Loading %d ROM banks\n", banks_count);
 #endif
     for (int i=0; i<banks_count; i++) {
-        memcpy(banks[i], rom + i*BANK_LENGTH, BANK_LENGTH);
+        memcpy(banks[i], romdata + i*BANK_LENGTH, BANK_LENGTH);
     }
+    // Verify ROM
+    for (int i=0; i<banks_count; i++) {
+        if (memcmp(banks[i], romdata + i*BANK_LENGTH, BANK_LENGTH) != 0) {
+#ifdef ENABLE_UART
+            printf("ROM bank mismatch: %d\n", i);
+#endif
+        }
+    }
+#ifdef ENABLE_UART
+    printf("ROM banks verified\n");
+#endif
+
+    // TODO Output some data from ram banks ??
+#ifdef ENABLE_UART
+    for (int i=0; i<banks_count; i++) {
+        printf("Bank 0x%02x @ 0x%08x: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+                    i, banks[i],
+                    banks[i][0], banks[i][1], banks[i][2], banks[i][3], banks[i][4], banks[i][5], banks[i][6], banks[i][7],
+                    banks[i][8], banks[i][9], banks[i][10], banks[i][11], banks[i][12], banks[i][13], banks[i][14], banks[i][15]
+        );
+    }
+#endif
 }
 #endif
 
-uint8_t init_rom() {
+uint8_t init_rom(const uint8_t* romdata, uint32_t size) {
     // Pin cache lines if required
 #if defined(LOAD_BANKS_16K) || defined(LOAD_BANKS_4K)
     pin_cache_lines();
@@ -135,29 +187,29 @@ uint8_t init_rom() {
 
     // Copy to RAM if required
 #ifdef LOAD_NO_BANKS
-    load_no_banks();
+    load_no_banks(romdata, size);
 #endif
 
 #ifdef LOAD_BANKS_16K
-    load_banks_16k();
+    load_banks_16k(romdata, size);
 #endif
 
 #ifdef LOAD_BANKS_4K
-    load_banks_4k();
+    load_banks_4k(romdata, size);
 #endif
 
 #ifdef ENABLE_UART
-    printf("Loaded\n");
+    printf("Loaded ROM at 0x%p\n", romdata);
 #endif
 
     // Read ROM header
     bool found_header = false;
     // First, try to read LoROM header @ 0x7fc0
-    uint16_t complement = rom[0x7fdc] | (rom[0x7fdd] << 8); // TODO *((uint16_t*)rom[0x7fdc]) ??
-    uint16_t checksum = rom[0x7fde] | (rom[0x7fdf] << 8);   // TODO *((uint16_t*)rom[0x7fde]) ??
+    uint16_t complement = romdata[0x7fdc] | (romdata[0x7fdd] << 8); // TODO *((uint16_t*)rom[0x7fdc]) ??
+    uint16_t checksum = romdata[0x7fde] | (romdata[0x7fdf] << 8);   // TODO *((uint16_t*)rom[0x7fde]) ??
     if ((checksum + complement) == 0xffff && (checksum != 0) && (complement != 0)) {
         // Checksum matches
-        uint8_t rom_speed_and_mapping = rom[0x7fd5];
+        uint8_t rom_speed_and_mapping = romdata[0x7fd5];
         if ((rom_speed_and_mapping & ~0x10) == 0x20) {
             romtype = rom_speed_and_mapping & 0x0f; // 0 == LoROM
             romspeed = (rom_speed_and_mapping & 0x10) >> 4; // 0 == SlowROM, 1 == FastROM
@@ -165,11 +217,11 @@ uint8_t init_rom() {
         }
     }
     // Then, try to read HiROM header @ 0xffc0
-    if (!found_header && rom_size >= 0x10000) {
-        uint16_t complement = rom[0xffdc] | (rom[0xffdd] << 8); // TODO *((uint16_t*)rom[0xffdc]) ??
-        uint16_t checksum = rom[0xffde] | (rom[0xffdf] << 8);   // TODO *((uint16_t*)rom[0xffde]) ??
+    if (!found_header && size >= 0x10000) {
+        uint16_t complement = romdata[0xffdc] | (romdata[0xffdd] << 8); // TODO *((uint16_t*)rom[0xffdc]) ??
+        uint16_t checksum = romdata[0xffde] | (romdata[0xffdf] << 8);   // TODO *((uint16_t*)rom[0xffde]) ??
         if ((checksum + complement) == 0xffff && (checksum != 0) && (complement != 0)) {
-            uint8_t rom_speed_and_mapping = rom[0xffd5];
+            uint8_t rom_speed_and_mapping = romdata[0xffd5];
             if ((rom_speed_and_mapping & ~0x10) == 0x21) {
                 romtype = rom_speed_and_mapping & 0x0f; // 1 == HiROM
                 romspeed = (rom_speed_and_mapping & 0x10) >> 4; // 0 == SlowROM, 1 == FastROM
@@ -177,13 +229,15 @@ uint8_t init_rom() {
             }
         }
     }
-    romsize = rom_size;
+
+    // TODO Read ROM size from header ?!
+    romsize = size;
     
 #ifdef ENABLE_UART
     if (!found_header) {
         printf("Failed to read ROM header --> Defaulting to LoROM ?\n");
-        romtype = rom[0x7fd5] & 0x0f;
-        romspeed = (rom[0x7fd5] & 0x10) >> 4;
+        romtype = romdata[0x7fd5] & 0x0f;
+        romspeed = (romdata[0x7fd5] & 0x10) >> 4;
     }
     if (romtype == 0) { // LoROM
         printf("ROM type: LoROM\n");
@@ -206,6 +260,74 @@ uint8_t init_rom() {
 #endif
 
     return romtype;
+}
+
+void __not_in_flash_func(loop_menu)() {
+#ifdef ENABLE_UART
+    printf("Waiting for SNES to boot...\n");
+#endif
+
+    while((gpio_get_all64() & SNES_CTRL_PINS_MASK) == 0) {
+        tight_loop_contents();
+    }
+
+    while (true) {
+        while((gpio_get_all64() & SNES_CTRL_PINS_MASK) != 0) {
+             tight_loop_contents();
+        }
+        uint32_t address = (gpio_get_all64() & SNES_ADDR_PINS_MASK);
+
+        uint32_t lorom_bank = address >> 16;
+        uint32_t data_location_in_rom = (lorom_bank & 0x7f) * 32768 + (address & 0x7fff);
+        uint8_t data = 0xff;
+        if (data_location_in_rom >= 0x7000 && data_location_in_rom < 0x7400) {
+            // Rom entries
+            uint16_t offset = data_location_in_rom - 0x7000;
+            data = *((uint8_t*)(&my_roms) + offset);
+        } else if (data_location_in_rom >= 0x7400 && data_location_in_rom < 0x7400 + my_roms.count) {
+            // Trigger trigger rom load by reading an offset (rom index) in 0x7400
+            uint16_t offset = data_location_in_rom - 0x7400;
+            if (offset >= 0 && offset < my_roms.count) {
+                selected_rom_addr = my_roms.entries[offset].address;
+
+                // Hold console in reset until rom is loaded and lopp is started
+                gpio_set_dir(SNES_RESET_PIN, true);
+                gpio_set_drive_strength(SNES_RESET_PIN, GPIO_DRIVE_STRENGTH_12MA);
+                gpio_put(SNES_RESET_PIN, 0);
+                break;
+            }
+        } else if (data_location_in_rom < romsize) {
+#ifdef NO_LOAD
+            data = menu_rom[data_location_in_rom];
+#endif
+#ifdef LOAD_NO_BANKS
+            data = sram_rom[data_location_in_rom];
+#endif
+#ifdef LOAD_BANKS_16K
+            int bank = (data_location_in_rom >> 14) & 0x1f;
+            int addr = data_location_in_rom & 0x3fff;
+            data = banks[bank][addr];
+#endif
+#ifdef LOAD_BANKS_4K
+            int bank = (data_location_in_rom >> 12) & 0x7f;
+            int addr = data_location_in_rom & 0x0fff;
+            data = banks[bank][addr];
+#endif
+        }
+        uint64_t data_out = data << SNES_DATA_PINS_SHIFT;
+
+        gpio_set_dir_out_masked64(SNES_DATA_PINS_MASK);
+        gpio_put_masked64(SNES_DATA_PINS_MASK, data_out);
+        while((gpio_get_all64() & SNES_RD_PIN_MASK) == 0) {
+            tight_loop_contents();
+        }
+        gpio_set_dir_in_masked64(SNES_DATA_PINS_MASK);
+        //gpio_clr_mask64(SNES_DATA_PINS_MASK);
+        
+        while((gpio_get_all64() & SNES_RD_PIN_MASK) != 0) {
+            tight_loop_contents();
+        }
+    }
 }
 
 void __not_in_flash_func(loop_lorom)() {
@@ -299,4 +421,8 @@ void __not_in_flash_func(loop_hirom)() {
         gpio_set_dir_in_masked64(SNES_DATA_PINS_MASK);
         //gpio_clr_mask64(SNES_DATA_PINS_MASK);
     }
+}
+
+uint8_t* selected_rom() {
+    return selected_rom_addr;
 }
