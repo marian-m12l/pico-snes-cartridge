@@ -42,7 +42,7 @@ uint8_t romspeed;
 
 roms_t my_roms;
 
-uint8_t* __uninitialized_ram(selected_rom_addr);
+uint8_t* selected_rom_addr;
 
 
 void pin_cache_lines() {

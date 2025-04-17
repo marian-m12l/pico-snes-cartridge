@@ -12,6 +12,7 @@ On rp2350 board (e.g. PGA2350):
 - Data bus `D0`-`D7`: GPIO 24 (`D0`) to 31 (`D7`)
 - Cart pin `/CART`: GPIO 32
 - Read pin `/RD`: GPIO 33
+- Reset pin `/RESET`: GPIO 35
 - CIC pin 24 `D1`: GPIO 37
 - CIC pin 55 `D2`: GPIO 38
 - CIC pin 56 `CLK`: GPIO 39
