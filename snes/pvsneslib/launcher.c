@@ -1,5 +1,5 @@
 #include <snes.h>
-#include "../../shared/menu.h"
+#include "../../shared/romlist.h"
 
 extern char tilfont, palfont;
 

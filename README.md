@@ -1,6 +1,6 @@
 # RP2350-based SNES cartridge
 
-![menu](https://github.com/user-attachments/assets/c68738c8-042b-4970-9e04-fa57992908f2)
+![launcher](https://github.com/user-attachments/assets/c68738c8-042b-4970-9e04-fa57992908f2)
 
 https://github.com/user-attachments/assets/8309a93a-a673-430d-9ed4-e411bfe92a66
 

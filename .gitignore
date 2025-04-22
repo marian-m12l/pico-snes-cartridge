@@ -1,5 +1,7 @@
 build
 hw
+logs
+roms
 *.smc
 *.log
 rom_*.c

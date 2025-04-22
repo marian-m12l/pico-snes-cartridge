@@ -11,26 +11,10 @@ pico_sdk_init()
 
 
 add_executable(pico-snes-cartridge
-    #main.c
     main_new.c
     bus.c
     cic.c
-    menu.c
-    #rom_helloworld.c
-    #rom_helloworld_mouse2.c
-    #rom_mrdo.c             # SlowROM LoROM 256KiB
-    #rom_snes3d_demo.c      # SlowROM LoROM 256KiB
-    #rom_smw.c              # SlowROM LoROM 512KiB
-    #rom_fzero.c            # SlowROM LoROM 512KiB
-    #rom_ff.c               # SlowROM LoROM 512KiB
-    #rom_mspacman.c         # FastROM LoROM 256KiB
-    #rom_hilda.c            # SlowROM LoROM 256KiB
-    #rom_christmas_craze.c  # SlowROM LoROM 512KiB
-    #rom_superrambler.c     # SlowROM LoROM 256KiB
-    #rom_sureinstinct.c     # FastROM HiROM 512KiB
-    #rom_incognity.c        # FastROM LoROM 512KiB
-    #rom_supermariokart.c   # FastROM HiROM 512KiB + DSP-1
-    #rom_smpspeed.c         # FastROM LoROM 32KiB
+    launcher.c
 )
 
 pico_generate_pio_header(pico-snes-cartridge ${CMAKE_CURRENT_LIST_DIR}/counter.pio)

@@ -5,9 +5,9 @@
 
 #include "bus.h"
 #include "pins.h"
-#include "rom.h"
+#include "launcher.h"
 
-#include "shared/menu.h"
+#include "shared/romlist.h"
 
 
 #define CACHE_AS_SRAM_OFFSET 0x02000000
@@ -254,7 +254,7 @@ uint8_t init_rom(const uint8_t* romdata, uint32_t size) {
     return romtype;
 }
 
-void __not_in_flash_func(loop_menu)() {
+void __not_in_flash_func(loop_launcher)() {
 #ifdef ENABLE_UART
     printf("Waiting for SNES to boot...\n");
 #endif
@@ -290,7 +290,7 @@ void __not_in_flash_func(loop_menu)() {
             }
         } else if (data_location_in_rom < romsize) {
 #ifdef NO_LOAD
-            data = menu_rom[data_location_in_rom];
+            data = launcher_rom[data_location_in_rom];
 #endif
 #ifdef LOAD_NO_BANKS
             data = sram_rom[data_location_in_rom];

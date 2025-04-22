@@ -7,7 +7,7 @@
 #include "bus.h"
 #include "cic.h"
 #include "pins.h"
-#include "rom.h"
+#include "launcher.h"
 
 
 #ifdef ENABLE_CIC
@@ -61,14 +61,14 @@ int main() {
     find_rom_entries();
 
     // Load menu and loop
-    uint8_t romtype = init_rom(menu_rom, menu_rom_size);
+    uint8_t romtype = init_rom(launcher_rom, launcher_rom_size);
 
 #ifdef ENABLE_CIC
     // Start CIC once we're done loading rom (and pinning xip cache)
     multicore_fifo_push_blocking(0xc1c0c1c0);
 #endif
     
-    loop_menu();
+    loop_launcher();
 
     // Rom was selected, load and run loop
     uint8_t* selected = selected_rom();
