@@ -3,12 +3,30 @@
 #include "pico/multicore.h"
 #include "hardware/clocks.h"
 #include "hardware/vreg.h"
+#include "hardware/watchdog.h"
 
 #include "bus.h"
 #include "cic.h"
 #include "pins.h"
 #include "launcher.h"
 
+
+#ifdef RESET_TO_LAUNCHER
+uint64_t reset_start;
+
+void reset_gpio_callback(uint gpio, uint32_t events) {
+    if (events & 0x04) {
+        // Falling edge
+        reset_start = time_us_64();
+    } else if (events & 0x08) {
+        // Rising edge
+        if ((time_us_64() - reset_start) > 1000000) {
+            // Just reset RP2350 (into launcher)
+            watchdog_reboot(0, 0, 0);
+        }
+    }
+}
+#endif
 
 #ifdef ENABLE_CIC
 void core1_entry() {
@@ -57,6 +75,11 @@ int main() {
     gpio_set_slew_rate(SNES_DATA_PINS_SHIFT+6, GPIO_SLEW_RATE_FAST);
     gpio_set_slew_rate(SNES_DATA_PINS_SHIFT+7, GPIO_SLEW_RATE_FAST);
 
+    // Hold console in reset until rom is loaded and lopp is started
+    gpio_set_dir(SNES_RESET_PIN, true);
+    gpio_set_drive_strength(SNES_RESET_PIN, GPIO_DRIVE_STRENGTH_12MA);
+    gpio_put(SNES_RESET_PIN, 0);
+
     // Look for ROMs in flash memory
     find_rom_entries();
 
@@ -67,7 +90,10 @@ int main() {
     // Start CIC once we're done loading rom (and pinning xip cache)
     multicore_fifo_push_blocking(0xc1c0c1c0);
 #endif
-    
+
+    // Release reset on console
+    gpio_set_dir(SNES_RESET_PIN, false);
+
     loop_launcher();
 
     // Rom was selected, load and run loop
@@ -78,7 +104,11 @@ int main() {
         
         // Release reset on console
         gpio_set_dir(SNES_RESET_PIN, false);
-        
+
+#ifdef RESET_TO_LAUNCHER
+        gpio_set_irq_enabled_with_callback(SNES_RESET_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &reset_gpio_callback);
+#endif
+
         if (romtype == 0) { // LoROM
             loop_lorom();
         } else if (romtype == 1) {  // HiROM

@@ -35,6 +35,8 @@ target_compile_definitions(pico-snes-cartridge PRIVATE
   #ENABLE_CIC=1
   CIC_DEBUG=1
   CIC_REGION_PAL=1
+
+  RESET_TO_LAUNCHER=1
 )
 
 #pico_set_binary_type(pico-snes-cartridge copy_to_ram)
@@ -45,6 +47,6 @@ pico_set_program_version(pico-snes-cartridge "0.1")
 pico_enable_stdio_uart(pico-snes-cartridge 1)
 pico_enable_stdio_usb(pico-snes-cartridge 0)
 
-target_link_libraries(pico-snes-cartridge pico_stdlib pico_multicore hardware_pio hardware_dma hardware_xip_cache)
+target_link_libraries(pico-snes-cartridge pico_stdlib pico_multicore hardware_pio hardware_dma hardware_xip_cache hardware_watchdog)
 
 pico_add_extra_outputs(pico-snes-cartridge)
