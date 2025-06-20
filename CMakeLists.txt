@@ -36,7 +36,7 @@ target_compile_definitions(pico-snes-cartridge PRIVATE
   CIC_DEBUG=1
   CIC_REGION_PAL=1
 
-  RESET_TO_LAUNCHER=1
+  #RESET_TO_LAUNCHER=1
 )
 
 #pico_set_binary_type(pico-snes-cartridge copy_to_ram)
