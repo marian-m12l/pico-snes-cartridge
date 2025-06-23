@@ -12,18 +12,17 @@
 
 
 #ifdef RESET_TO_LAUNCHER
-uint64_t reset_start;
 
 void reset_gpio_callback(uint gpio, uint32_t events) {
-    if (events & 0x04) {
-        // Falling edge
-        reset_start = time_us_64();
-    } else if (events & 0x08) {
-        // Rising edge
-        if ((time_us_64() - reset_start) > 1000000) {
-            // Just reset RP2350 (into launcher)
-            watchdog_reboot(0, 0, 0);
-        }
+    // Called when RESET is pressed (low)
+    // Wait for RESET to be released (high) or for the long-press reset-to-launcher timeout
+    uint32_t counter = 1000000;
+    while (--counter && !gpio_get(SNES_RESET_PIN)) {
+        tight_loop_contents();
+    }
+    if (counter == 0) {
+        // Just reset RP2350 (into launcher)
+        watchdog_reboot(0, 0, 0);
     }
 }
 #endif
@@ -75,10 +74,16 @@ int main() {
     gpio_set_slew_rate(SNES_DATA_PINS_SHIFT+6, GPIO_SLEW_RATE_FAST);
     gpio_set_slew_rate(SNES_DATA_PINS_SHIFT+7, GPIO_SLEW_RATE_FAST);
 
-    // Hold console in reset until rom is loaded and lopp is started
-    gpio_set_dir(SNES_RESET_PIN, true);
-    gpio_set_drive_strength(SNES_RESET_PIN, GPIO_DRIVE_STRENGTH_12MA);
+    // Hold console in reset until rom is loaded and loop is started
     gpio_put(SNES_RESET_PIN, 0);
+    gpio_set_drive_strength(SNES_RESET_PIN, GPIO_DRIVE_STRENGTH_12MA);
+    gpio_set_dir(SNES_RESET_PIN, true);
+
+#ifdef RESET_TO_LAUNCHER
+    // Register RESET interrupt handler
+    gpio_set_irq_callback(&reset_gpio_callback);
+    irq_set_enabled(IO_IRQ_BANK0, true);
+#endif
 
     // Look for ROMs in flash memory
     find_rom_entries();
@@ -99,15 +104,18 @@ int main() {
     // Rom was selected, load and run loop
     uint8_t* selected = selected_rom();
     if (selected != 0) {
+        // Hold console in reset until rom is loaded and loop is started
+        gpio_set_dir(SNES_RESET_PIN, true);
+
         uint32_t size = *((uint32_t*) (selected + 16));
         uint8_t romtype = init_rom(selected + 32, size);
+
+#ifdef RESET_TO_LAUNCHER
+        gpio_set_irq_enabled(SNES_RESET_PIN, GPIO_IRQ_EDGE_FALL, true);
+#endif
         
         // Release reset on console
         gpio_set_dir(SNES_RESET_PIN, false);
-
-#ifdef RESET_TO_LAUNCHER
-        gpio_set_irq_enabled_with_callback(SNES_RESET_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &reset_gpio_callback);
-#endif
 
         if (romtype == 0) { // LoROM
             loop_lorom();

@@ -281,11 +281,7 @@ void __not_in_flash_func(loop_launcher)() {
             uint16_t offset = data_location_in_rom - 0x7400;
             if (offset >= 0 && offset < my_roms.count) {
                 selected_rom_addr = my_roms.entries[offset].address;
-
-                // Hold console in reset until rom is loaded and lopp is started
-                gpio_set_dir(SNES_RESET_PIN, true);
-                gpio_set_drive_strength(SNES_RESET_PIN, GPIO_DRIVE_STRENGTH_12MA);
-                gpio_put(SNES_RESET_PIN, 0);
+                // Break loop, hand it over to main
                 break;
             }
         } else if (data_location_in_rom < romsize) {
