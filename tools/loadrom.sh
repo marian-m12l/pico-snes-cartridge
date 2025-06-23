@@ -76,4 +76,4 @@ addr=$(printf "0x%X" $((index * 0x100000 + 0x10000000)))
 
 echo "programming rom $1 at address $addr"
 
-$OPENOCD -f interface/jlink.cfg -c "transport select swd" -c "adapter speed 6000" -f target/rp2350.cfg -c "program /tmp/rom.bin exit $addr"
+$OPENOCD -f interface/jlink.cfg -c "transport select swd" -c "adapter speed 6000" -f target/rp2350.cfg -c "program /tmp/rom.bin verify reset exit $addr"
