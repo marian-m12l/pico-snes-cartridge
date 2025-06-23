@@ -45,3 +45,9 @@ $ openocd-rpi/installed/bin/openocd -f interface/jlink.cfg -c "transport select 
 $ arm-none-eabi-gdb -ex 'target remote localhost:3333' -ex 'load' -ex 'monitor reset init' -ex 'continue' pico-snes-cartridge.elf
 $ picocom -b 115200 /dev/ttyACM0 -g picocom.log
 ```
+
+# Reset behaviour
+
+Once you've selected a game, pressing the reset button on the SNES will restart this game.
+
+A long-press (~1 second) will go back to the launcher.
