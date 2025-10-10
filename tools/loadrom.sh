@@ -1,6 +1,6 @@
 #!/bin/bash
 
-OPENOCD=/home/marian/dev/openocd-rpi/installed/bin/openocd
+OPENOCD=openocd
 rom=$1
 index=$2    # Between 1 and 15
 
