@@ -4,6 +4,10 @@
 
 https://github.com/user-attachments/assets/8309a93a-a673-430d-9ed4-e411bfe92a66
 
+![snes_cart_1](https://github.com/user-attachments/assets/b732beac-30a8-45c6-bd4a-3e887160c2d5)
+![snes_cart_2](https://github.com/user-attachments/assets/efc77e7f-af5f-476b-9c4b-7b1d2699faec)
+
+
 ## Pins
 
 On rp2350 board (e.g. PGA2350):
